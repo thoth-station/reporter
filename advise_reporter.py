@@ -24,23 +24,13 @@ import os
 import ssl
 
 from thoth.lab import adviser
+from thoth.messaging import AdviseJustificationMessage
 
-from messages.advise_justification import AdviseJustificationMessage
+app = AdviseJustificationMessage.app
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 
-_KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-_KAFKA_CAFILE = os.getenv("KAFKA_CAFILE", "ca.crt")
-KAFKA_CLIENT_ID = os.getenv("KAFKA_CLIENT_ID", "thoth-messaging")
-KAFKA_PROTOCOL = os.getenv("KAFKA_PROTOCOL", "SSL")
-KAFKA_TOPIC_RETENTION_TIME_SECONDS = 60 * 60 * 24 * 45
-ssl_context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH, cafile=_KAFKA_CAFILE)
-app = faust.App("thoth-messaging", broker=_KAFKA_BOOTSTRAP_SERVERS, ssl_context=ssl_context, web_enabled=False)
 
-namespace = os.getenv("THOTH_NAMESPACE")
-
-
-@app.command()
 async def main():
     """Run advise-reporter."""
     advise_justification = AdviseJustificationMessage()
@@ -52,12 +42,12 @@ async def main():
 
     for index, row in final_dataframe[["jm_hash_id_encoded", "message", "type"]].iterrows():
         encoded_id = row["jm_hash_id_encoded"]
-        if encoded_id not in histogram_data.keys():
+        if encoded_id not in advise_justifications.keys():
             advise_justifications[encoded_id] = {
                 "jm_hash_id_encoded": f"type-{encoded_id}",
                 "message": row["message"],
                 "type": row["type"],
-                "count": plot_df["jm_hash_id_encoded"].value_counts()[encoded_id]
+                "count": final_dataframe["jm_hash_id_encoded"].value_counts()[encoded_id]
             }
 
     for advise_justification_info in advise_justifications.values():

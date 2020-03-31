@@ -7,8 +7,8 @@ verify_ssl = true
 
 [packages]
 thoth-lab = ">=0.1.8"
-faust = "*"
-aiomonitor = "*"
+thoth-common= "*"
+thoth-messaging= "*"
 
 [requires]
 python_version = "3.6"

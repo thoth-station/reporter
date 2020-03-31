@@ -30,6 +30,7 @@ app = MessageBase.app
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 
+
 @app.command()
 async def main():
     """Run advise-reporter."""

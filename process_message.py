@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger("thoth.package_update")
 prometheus_registry = CollectorRegistry()
 
 _THOTH_METRICS_PUSHGATEWAY_URL = (
-    os.getenv("PROMETHEUS_PUSHGATEWAY_URL") or "pushgateway-dh-prod-monitoring.cloud.datahub.psi.redhat.com:80"
+    os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
 )
 
 _METRIC_ADVISE_TYPE = Gauge(

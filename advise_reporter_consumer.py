@@ -31,17 +31,7 @@ _LOGGER = logging.getLogger("thoth.advise_reporter")
 app = MessageBase.app
 KAFKA_TOPIC_RETENTION_TIME_SECONDS = 60 * 60 * 24 * 45
 
-advise_justification_topic = app.topic(
-    AdviseJustificationMessage.topic_name,
-    value_type=AdviseJustificationMessage.MessageContents,
-    retention=KAFKA_TOPIC_RETENTION_TIME_SECONDS,
-    partitions=1,
-    internal=True,
-)
-
-# TODO: for storages we need the following functions:
-#       update_hash_mismatch(index_url, package_name, package_version, new_hash) unless this is done by solver
-
+advise_justification_topic = AdviseJustificationMessage().topic
 
 @app.agent(advise_justification_topic)
 async def consume_hash_mismatch(advise_justification):

@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: advise-reporter-consumer-deployment
+  annotations:
+    description: "Thoth: Advise Reporter Consumer"
+    openshift.io/display-name: "Thoth Core: Advise Reporter Consumer"
+    version: 0.6.0-dev
+    tags: thoth,advise-reporter-consumer,ai-stacks,aistacks
+    template.openshift.io/documentation-url: https://github.com/Thoth-Station/
+    template.openshift.io/long-description: >
+      This template defines resources needed to deploy Thoth
+      Advise Reporter Consumer on OpenShift.
+    template.openshift.io/provider-display-name: "Red Hat, Inc."
+  labels:
+    template: advise-reporter-consumer-deployment
+    app: thoth
+    component: advise-reporter-consumer
+
+parameters:
+  - description: "Project the ImageStream to be use lives in."
+    displayName: "ImageStream Project"
+    required: true
+    name: IMAGE_STREAM_NAMESPACE
+
+  - description: "Tag of the ImageStream to be use."
+    displayName: "ImageStream Tag"
+    required: true
+    name: IMAGE_STREAM_TAG
+    value: "latest"
+
+  - description: "Service account to be used."
+    displayName: "Service account name"
+    required: true
+    name: SERVICE_ACCOUNT_NAME
+    value: "advise-reporter-consumer"
+
+  - description: "Subcommand to run in the package-update-job repository."
+    displayName: "Subcommand"
+    required: true
+    name: "SUBCOMMAND"
+    value: "consumer"
+
+objects:
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      annotations:
+        thoth-station.ninja/template-version: 0.6.0-dev
+      labels:
+        app: thoth
+        component: advise-reporter-consumer
+      name: advise-reporter-consumer
+    spec:
+      ports:
+        - port: 8000
+          protocol: TCP
+          targetPort: 8000
+      selector:
+        service: advise-reporter-consumer
+
+  - kind: DeploymentConfig
+    apiVersion: apps.openshift.io/v1
+    metadata:
+      annotations:
+        thoth-station.ninja/template-version: 0.6.0-dev
+      labels:
+        app: thoth
+        component: advise-reporter-consumer
+      name: advise-reporter-consumer
+    spec:
+      replicas: 1
+      selector:
+        service: advise-reporter-consumer
+      template:
+        metadata:
+          labels:
+            service: advise-reporter-consumer
+        spec:
+          serviceAccountName: "${SERVICE_ACCOUNT_NAME}"
+          containers:
+            - name: advise-reporter-consumer
+              imagePullPolicy: Always
+              env:
+                - name: SUBCOMMAND
+                  value: "${SUBCOMMAND}"
+                - name: APP_SCRIPT
+                  value: "app.sh"
+                - name: PROMETHEUS_PUSHGATEWAY_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: thoth
+                      key: metrics-pushgateway-url
+                - name: KAFKA_BOOTSTRAP_SERVERS
+                  valueFrom:
+                    configMapKeyRef:
+                      key: kafka-bootstrap-servers
+                      name: kafka
+                - name: KAFKA_CAFILE
+                  value: "/mnt/secrets/kafka_ca.crt"
+                - name: KAFKA_CLIENT_ID
+                  value: "TODO: UNUSED"
+                - name: KAFKA_PROTOCOL
+                  valueFrom:
+                    configMapKeyRef:
+                      key: kafka-protocol
+                      name: kafka
+              ports:
+                - containerPort: 8000
+                  protocol: HTTP
+              resources:
+                requests:
+                  memory: "1Gi"
+                  cpu: "2"
+                limits:
+                  memory: "1Gi"
+                  cpu: "2"
+              volumeMounts:
+                - name: secrets
+                  mountPath: /mnt/secrets
+                  readOnly: true
+          volumes:
+            - name: secrets
+              secret:
+                secretName: "kafka-secret"
+                items:
+                  - key: kafka_ca.crt
+                    path: kafka_ca.crt
+      test: false
+      triggers:
+        - type: ConfigChange
+        - type: ImageChange
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - advise-reporter-consumer
+            from:
+              kind: ImageStreamTag
+              namespace: "${IMAGE_STREAM_NAMESPACE}"
+              name: "advise-reporter:${IMAGE_STREAM_TAG}"

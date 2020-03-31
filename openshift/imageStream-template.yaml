@@ -3,20 +3,20 @@ kind: Template
 metadata:
   name: advise-reporter-imagestream
   annotations:
-    description: This is Thoth Core - Package Update ImageStream
-    openshift.io/display-name: "Thoth: Package Releases ImageStream"
+    description: This is Thoth Core - Advise Reporter ImageStream
+    openshift.io/display-name: "Thoth: Advise Reporter ImageStream"
     version: 0.1.0
     tags: poc,thoth,ai-stacks,advise-reporter
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
     template.openshift.io/long-description: >
-      This template defines resources needed to deploy Thoth Package Update
+      This template defines resources needed to deploy Thoth Advise Reporter
       ImageStream as a Proof-of-Concept to OpenShift.
     template.openshift.io/provider-display-name: Red Hat, Inc.
     thoth-station.ninja/template-version: 0.1.0
   labels:
     template: advise-reporter-imagestream
     app: thoth
-    component: package-releases
+    component: advise-reporter
 
 objects:
   - kind: ImageStream

@@ -3,16 +3,16 @@ kind: Template
 metadata:
   name: advise-reporter-cronjob
   annotations:
-    description: "Thoth: Package Update Job"
-    openshift.io/display-name: "Thoth: Package Update Job"
+    description: "Thoth: Advise Reporter"
+    openshift.io/display-name: "Thoth: Advise Reporter"
     version: 0.1.0
     tags: thoth,ai-stacks,aistacks,advise-reporter
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
     template.openshift.io/long-description: >
-      This template defines resources needed to deploy Thoth Package
-      Update Job to OpenShift.
+      This template defines resources needed to deploy 
+      Thoth Advise Reporter to OpenShift.
     template.openshift.io/provider-display-name: "Red Hat, Inc."
-    thoth-station.ninja/template-version: 0.1.0
+    thoth-station.ninja/template-version: 0.1.0 
   labels:
     template: advise-reporter-cronjob
     app: thoth
@@ -114,30 +114,31 @@ objects:
                         configMapKeyRef:
                           key: storage-bucket-name
                           name: thoth
-                    - name: KNOWLEDGE_GRAPH_HOST
+                    - name: THOTH_S3_ENDPOINT_URL
                       valueFrom:
                         configMapKeyRef:
-                          key: postgresql-host
+                          key: ceph-host
                           name: thoth
-                    - name: KNOWLEDGE_GRAPH_PORT
-                      value: "5432"
-                    - name: KNOWLEDGE_GRAPH_SSL_DISABLED
-                      value: "1"
-                    - name: KNOWLEDGE_GRAPH_USER
+                    - name: THOTH_CEPH_BUCKET
+                      valueFrom:
+                        configMapKeyRef:
+                          key: ceph-bucket-name
+                          name: thoth
+                    - name: THOTH_CEPH_BUCKET_PREFIX
+                      valueFrom:
+                        configMapKeyRef:
+                          key: ceph-bucket-prefix
+                          name: thoth
+                    - name: THOTH_CEPH_KEY_ID
                       valueFrom:
                         secretKeyRef:
-                          name: postgresql
-                          key: database-user
-                    - name: KNOWLEDGE_GRAPH_PASSWORD
+                          name: thoth
+                          key: ceph-key-id
+                    - name: THOTH_CEPH_SECRET_KEY
                       valueFrom:
                         secretKeyRef:
-                          name: postgresql
-                          key: database-password
-                    - name: KNOWLEDGE_GRAPH_DATABASE
-                      valueFrom:
-                        secretKeyRef:
-                          name: postgresql
-                          key: database-name
+                          name: thoth
+                          key: ceph-secret-key
                   volumeMounts:
                     - name: secrets
                       mountPath: /mnt/secrets

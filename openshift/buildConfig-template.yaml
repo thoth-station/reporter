@@ -3,14 +3,14 @@ kind: Template
 metadata:
   name: advise-reporter-buildconfig
   annotations:
-    description: This is Thoth Core - Package Releases Job BuildConfig
-    openshift.io/display-name: "Thoth: Package Releases Job BuildConfig"
+    description: This is Thoth Core - Advise Reporter Job BuildConfig
+    openshift.io/display-name: "Thoth: Advise Reporter Job BuildConfig"
     version: 0.1.0
     tags: poc,thoth,ai-stacks,advise-reporter
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
     template.openshift.io/long-description: >
-      This template defines resources needed to deploy Thoth Package
-      Releases Job as a Proof-of-Concept to OpenShift.
+      This template defines resources needed to deploy Thoth
+      Advise Reporter as a Proof-of-Concept to OpenShift.
     template.openshift.io/provider-display-name: Red Hat, Inc.
     thoth-station.ninja/template-version: 0.1.0
   labels:
@@ -78,13 +78,13 @@ objects:
               name: generic-webhook-secret
 
 parameters:
-  - description: Name of the github repository for Thoth's Package Releases Job
+  - description: Name of the github repository for Thoth's Advise Reporter
     displayName: Git Repository
     required: true
     name: GITHUB_URL
     value: 'https://github.com/thoth-station/advise-reporter'
 
-  - description: Git reference to be used for Thoth's Package Releases Job
+  - description: Git reference to be used for Thoth's Advise Reporter
     displayName: Git Reference
     required: true
     name: GITHUB_REF

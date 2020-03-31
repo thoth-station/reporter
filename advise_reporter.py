@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # thoth-storages
-# Copyright(C) 2020 Kevin Postlethwait, Francesco Murdaca
+# Copyright(C) 2020 Francesco Murdaca
 #
 # This program is free software: you can redistribute it and / or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,18 +24,18 @@ import os
 import ssl
 
 from thoth.lab import adviser
-from thoth.messaging import AdviseJustificationMessage
+from thoth.messaging import MessageBase, AdviseJustificationMessage
 
-app = AdviseJustificationMessage.app
+app = MessageBase.app
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 
-
+@app.command()
 async def main():
     """Run advise-reporter."""
     advise_justification = AdviseJustificationMessage()
 
-    adviser_dataframe = adviser.aggregate_adviser_results(adviser_version="0.7.3", limit_results=True)
+    adviser_dataframe = adviser.aggregate_adviser_results(adviser_version="0.7.3", limit_results=False)
     final_dataframe = adviser.create_final_dataframe(adviser_dataframe=adviser_dataframe)
 
     advise_justifications = {}

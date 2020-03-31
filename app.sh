@@ -6,5 +6,5 @@
 
 if [ "$SUBCOMMAND" = "producer" ]
 then
-    exec faust --debug --loglevel debug -A package_update main
+    exec faust --debug --loglevel debug -A advise_reporter main
 fi

@@ -23,20 +23,28 @@ import logging
 
 from thoth.common import init_logging
 from thoth.messaging import MessageBase, AdviseJustificationMessage
+from prometheus_client import start_http_server, Gauge
 
 init_logging()
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 
 app = MessageBase.app
-KAFKA_TOPIC_RETENTION_TIME_SECONDS = 60 * 60 * 24 * 45
+
+_METRIC_ADVISE_TYPE = Gauge(
+    "thoth_advise_type_number",
+    "Number of thamos advise provided per type.",
+    ["advise_message", "advise_type"],
+)
 
 advise_justification_topic = AdviseJustificationMessage().topic
+
 
 @app.agent(advise_justification_topic)
 async def consume_hash_mismatch(advise_justification):
     """Loop when a hash mismatch message is received."""
-    process_advise_justification(advise_justification)
+    _METRIC_ADVISE_TYPE.labels(advise_justification["message"]).set(advise_justification["count"])
 
 if __name__ == "__main__":
+    start_http_server(8000)
     app.main()

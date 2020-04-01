@@ -86,11 +86,11 @@ objects:
                   value: "${SUBCOMMAND}"
                 - name: APP_SCRIPT
                   value: "app.sh"
-                - name: PROMETHEUS_PUSHGATEWAY_URL
+                - name: PROMETHEUS_HOST_URL
                   valueFrom:
                     configMapKeyRef:
                       name: thoth
-                      key: metrics-pushgateway-url
+                      key: prometheus-host-url
                 - name: KAFKA_BOOTSTRAP_SERVERS
                   valueFrom:
                     configMapKeyRef:

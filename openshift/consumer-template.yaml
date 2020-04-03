@@ -22,18 +22,14 @@ parameters:
     displayName: "ImageStream Project"
     required: true
     name: IMAGE_STREAM_NAMESPACE
+    # TODO adjust ansible role so that we dont need a default here
+    value: "thoth-test-core"
 
   - description: "Tag of the ImageStream to be use."
     displayName: "ImageStream Tag"
     required: true
     name: IMAGE_STREAM_TAG
     value: "latest"
-
-  - description: "Service account to be used."
-    displayName: "Service account name"
-    required: true
-    name: SERVICE_ACCOUNT_NAME
-    value: "advise-reporter-consumer"
 
   - description: "Subcommand to run in the package-update-job repository."
     displayName: "Subcommand"
@@ -42,11 +38,25 @@ parameters:
     value: "consumer"
 
 objects:
+  - kind: Route
+    apiVersion: route.openshift.io/v1
+    metadata:
+      name: advise-reporter-consumer
+      annotations:
+        thoth-station.ninja/template-version: 0.5.0
+      labels:
+        app: thoth
+        component: advise-reporter-consumer
+    spec:
+      to:
+        kind: Service
+        name: advise-reporter-consumer
+
   - kind: Service
     apiVersion: v1
     metadata:
       annotations:
-        thoth-station.ninja/template-version: 0.6.0-dev
+        thoth-station.ninja/template-version: 0.1.0
       labels:
         app: thoth
         component: advise-reporter-consumer
@@ -60,10 +70,10 @@ objects:
         service: advise-reporter-consumer
 
   - kind: DeploymentConfig
-    apiVersion: apps.openshift.io/v1
+    apiVersion: v1
     metadata:
       annotations:
-        thoth-station.ninja/template-version: 0.6.0-dev
+        thoth-station.ninja/template-version: 0.1.0
       labels:
         app: thoth
         component: advise-reporter-consumer
@@ -77,7 +87,6 @@ objects:
           labels:
             service: advise-reporter-consumer
         spec:
-          serviceAccountName: "${SERVICE_ACCOUNT_NAME}"
           containers:
             - name: advise-reporter-consumer
               imagePullPolicy: Always
@@ -94,27 +103,35 @@ objects:
                 - name: KAFKA_BOOTSTRAP_SERVERS
                   valueFrom:
                     configMapKeyRef:
+                      name: thoth
                       key: kafka-bootstrap-servers
-                      name: kafka
-                - name: KAFKA_CAFILE
-                  value: "/mnt/secrets/kafka_ca.crt"
                 - name: KAFKA_CLIENT_ID
-                  value: "TODO: UNUSED"
-                - name: KAFKA_PROTOCOL
                   valueFrom:
                     configMapKeyRef:
-                      key: kafka-protocol
-                      name: kafka
+                      name: thoth
+                      key: kafka-client-id
+                - name: KAFKA_SSL_AUTH
+                  valueFrom:
+                    configMapKeyRef:
+                      name: thoth
+                      key: kafka-ssl-auth
+                - name: KAFKA_RETENTION_TIME_SECONDS
+                  valueFrom:
+                    configMapKeyRef:
+                      name: thoth
+                      key: kafka-topic-retention-time
+                - name: KAFKA_CAFILE
+                  value: "/mnt/secrets/kafka_ca.crt"
               ports:
                 - containerPort: 8000
-                  protocol: HTTP
+                  protocol: TCP
               resources:
                 requests:
-                  memory: "1Gi"
-                  cpu: "2"
+                  memory: "256Mi"
+                  cpu: "500m"
                 limits:
-                  memory: "1Gi"
-                  cpu: "2"
+                  memory: "256Mi"
+                  cpu: "500m"
               volumeMounts:
                 - name: secrets
                   mountPath: /mnt/secrets

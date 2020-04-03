@@ -39,7 +39,7 @@ advise_justification_topic = AdviseJustificationMessage().topic
 
 
 @app.agent(advise_justification_topic)
-async def consume_hash_mismatch(advise_justification):
+async def consume_advise_justification(advise_justification):
     """Loop when a hash mismatch message is received."""
     _METRIC_ADVISE_TYPE.labels(advise_justification["message"]).set(advise_justification["count"])
 

@@ -36,7 +36,7 @@ parameters:
     required: true
     name: IMAGE_STREAM_NAMESPACE
     # TODO adjust ansible role so that we dont need a default here
-    value: "thoth-test-core"
+    value: "thoth-infra-stage"
 
   - description: Tag of the ImageStream to be use
     displayName: ImageStream Tag

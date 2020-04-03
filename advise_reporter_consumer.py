@@ -42,7 +42,7 @@ advise_justification_topic = AdviseJustificationMessage().topic
 async def consume_advise_justification(advise_justifications):
     """Loop when a hash mismatch message is received."""
     async for advise_justification in advise_justifications:
-        _METRIC_ADVISE_TYPE.labels(advise_message=advise_justification["message"]).set(advise_justification["count"])
+        _METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message).set(advise_justification.count)
 
 if __name__ == "__main__":
     start_http_server(8002)

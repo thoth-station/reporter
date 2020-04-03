@@ -30,9 +30,9 @@ _LOGGER = logging.getLogger("thoth.advise_reporter")
 app = MessageBase.app
 
 _METRIC_ADVISE_TYPE = Gauge(
-    "thoth_advise_type_number",
-    "Number of thamos advise provided per type.",
-    ["advise_message", "advise_type"],
+    "thoth_advise_message_number",
+    "Number of thamos advise provided per message.",
+    ["advise_message"],
 )
 
 advise_justification_topic = AdviseJustificationMessage().topic
@@ -41,8 +41,8 @@ advise_justification_topic = AdviseJustificationMessage().topic
 @app.agent(advise_justification_topic)
 async def consume_advise_justification(advise_justification):
     """Loop when a hash mismatch message is received."""
-    _METRIC_ADVISE_TYPE.labels(advise_justification["message"]).set(advise_justification["count"])
+    _METRIC_ADVISE_TYPE.labels(str(advise_justification["message"])).set(int(advise_justification["count"]))
 
 if __name__ == "__main__":
-    start_http_server(8000)
+    start_http_server(8002)
     app.main()

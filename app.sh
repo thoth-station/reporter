@@ -7,4 +7,7 @@
 if [ "$SUBCOMMAND" = "producer" ]
 then
     exec faust --debug --loglevel debug -A advise_reporter main
+elif [ "$SUBCOMMAND" = "consumer" ]
+then
+    exec faust --debug --loglevel debug -A advise_reporter_consumer worker
 fi

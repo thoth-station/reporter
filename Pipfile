@@ -6,9 +6,10 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-thoth-lab = ">=0.1.8"
-faust = "*"
-aiomonitor = "*"
+prometheus-client = "<0.7.0"
+thoth-lab = ">=0.1.10"
+thoth-common= "*"
+thoth-messaging= "*"
 
 [requires]
 python_version = "3.6"

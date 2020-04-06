@@ -30,6 +30,7 @@ app = MessageBase.app
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 
+
 @app.command()
 async def main():
     """Run advise-reporter."""
@@ -52,7 +53,7 @@ async def main():
 
     for advise_justification_info in advise_justifications.values():
         message = advise_justification_info["message"]
-        count = advise_justification_info["count"]
+        count = int(advise_justification_info["count"])
         try:
             await advise_justification.publish_to_topic(
                 advise_justification.MessageContents(
@@ -62,7 +63,7 @@ async def main():
             )
             _LOGGER.debug("Adviser justification message:\n%r\nCount:\n%r\n", message, count)
         except Exception as identifier:
-            _LOGGER.exception("Failed to publish with the following error message: %r", identifier.msg)
+            _LOGGER.exception("Failed to publish with the following error message: %r", identifier)
 
 
 if __name__ == "__main__":

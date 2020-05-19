@@ -35,8 +35,9 @@ _METRIC_ADVISE_TYPE = Gauge(
     registry=prometheus_registry,
 )
 
-_THOTH_METRICS_PUSHGATEWAY_URL = (
-    os.getenv("PROMETHEUS_PUSHGATEWAY_URL") or "pushgateway-dh-prod-monitoring.cloud.datahub.psi.redhat.com:80"
+_THOTH_METRICS_PUSHGATEWAY_URL = os.getenv(
+    "PROMETHEUS_PUSHGATEWAY_URL",
+    "pushgateway-dh-prod-monitoring.cloud.datahub.psi.redhat.com:80"
 )
 
 

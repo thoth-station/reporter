@@ -29,18 +29,20 @@ _LOGGER = logging.getLogger("thoth.advise_reporter")
 prometheus_registry = CollectorRegistry()
 
 _METRIC_ADVISE_TYPE = Gauge(
-    "thoth_advise_message_number", "Number of thamos advise provided per message.", ["advise_message"], registry=prometheus_registry
+    "thoth_advise_message_number",
+    "Number of thamos advise provided per message.",
+    ["advise_message"],
+    registry=prometheus_registry,
 )
 
-_THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL") or "pushgateway-dh-prod-monitoring.cloud.datahub.psi.redhat.com:80"
+_THOTH_METRICS_PUSHGATEWAY_URL = (
+    os.getenv("PROMETHEUS_PUSHGATEWAY_URL") or "pushgateway-dh-prod-monitoring.cloud.datahub.psi.redhat.com:80"
+)
 
 
 def retrieve_adviser_reports_justifications(adviser_version: str):
     """Retrieve adviser reports justifications."""
-    adviser_dataframe = adviser.aggregate_adviser_results(
-        adviser_version=adviser_version,
-        limit_results=False
-    )
+    adviser_dataframe = adviser.aggregate_adviser_results(adviser_version=adviser_version, limit_results=False)
     final_dataframe = adviser.create_final_dataframe(adviser_dataframe=adviser_dataframe)
 
     advise_justifications = {}
@@ -52,7 +54,7 @@ def retrieve_adviser_reports_justifications(adviser_version: str):
                 "jm_hash_id_encoded": f"type-{encoded_id}",
                 "message": row["message"],
                 "type": row["type"],
-                "count": final_dataframe["jm_hash_id_encoded"].value_counts()[encoded_id]
+                "count": final_dataframe["jm_hash_id_encoded"].value_counts()[encoded_id],
             }
 
     return advise_justifications
@@ -65,14 +67,8 @@ def send_metrics_to_pushgateway(advise_justification: Dict[str, Any]):
 
     if _THOTH_METRICS_PUSHGATEWAY_URL:
         try:
-            _LOGGER.info(
-                f"Submitting metrics to Prometheus pushgateway {_THOTH_METRICS_PUSHGATEWAY_URL}"
-            )
-            push_to_gateway(
-                _THOTH_METRICS_PUSHGATEWAY_URL,
-                job="advise-error-analysis",
-                registry=prometheus_registry,
-            )
+            _LOGGER.info(f"Submitting metrics to Prometheus pushgateway {_THOTH_METRICS_PUSHGATEWAY_URL}")
+            push_to_gateway(_THOTH_METRICS_PUSHGATEWAY_URL, job="advise-error-analysis", registry=prometheus_registry)
         except Exception as e:
             _LOGGER.info(f"An error occurred pushing the metrics: {str(e)}")
 

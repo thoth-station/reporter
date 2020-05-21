@@ -33,7 +33,7 @@ _LOGGER = logging.getLogger("thoth.advise_reporter")
 
 @app.command()
 async def main():
-    """Run advise-reporter."""
+    """Run advise-reporter to produce message."""
     advise_justification = AdviseJustificationMessage()
 
     advise_justifications = retrieve_adviser_reports_justifications(adviser_version=ADVISER_VERSION)

@@ -35,7 +35,7 @@ advise_justification_topic = AdviseJustificationMessage().topic
 
 @app.agent(advise_justification_topic)
 async def consume_advise_justification(advise_justifications):
-    """Loop when a hash mismatch message is received."""
+    """Loop when a advise justification message is received."""
     async for advise_justification in advise_justifications:
         # TODO: Expose metrics instead of sending to Pushgateway
         send_metrics_to_pushgateway(advise_justification=advise_justification)

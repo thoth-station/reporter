@@ -19,9 +19,7 @@
 
 import asyncio
 import logging
-import faust
 import os
-import ssl
 
 from thoth.messaging import MessageBase, AdviseJustificationMessage
 from advise_reporter import retrieve_adviser_reports_justifications

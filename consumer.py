@@ -24,7 +24,7 @@ from thoth.common import init_logging
 from thoth.messaging import MessageBase, AdviseJustificationMessage
 from advise_reporter import send_metrics_to_pushgateway
 
-init_logging({'thoth.advise_reporter': 'INFO'})
+init_logging()
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 

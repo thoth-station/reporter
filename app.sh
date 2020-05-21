@@ -18,6 +18,6 @@ then
     then
         exec faust --debug --loglevel debug -A consumer worker
     else
-       exec faust -A consumer worker
+        exec faust -A consumer worker
     fi
 fi

@@ -22,8 +22,6 @@ parameters:
     displayName: "ImageStream Project"
     required: true
     name: IMAGE_STREAM_NAMESPACE
-    # TODO adjust ansible role so that we dont need a default here
-    value: "thoth-infra-stage"
 
   - description: "Tag of the ImageStream to be use."
     displayName: "ImageStream Tag"
@@ -65,7 +63,7 @@ objects:
       ports:
         - port: 80
           protocol: TCP
-          targetPort: 8002
+          targetPort: 8080
       selector:
         service: advise-reporter-consumer
 
@@ -93,6 +91,8 @@ objects:
               env:
                 - name: SUBCOMMAND
                   value: "${SUBCOMMAND}"
+                - name: DEBUG_LEVEL
+                  value: ${{DEBUG_LEVEL}}
                 - name: APP_SCRIPT
                   value: "app.sh"
                 - name: PROMETHEUS_HOST_URL
@@ -123,7 +123,7 @@ objects:
                 - name: KAFKA_CAFILE
                   value: "/mnt/secrets/kafka_ca.crt"
               ports:
-                - containerPort: 8002
+                - containerPort: 8080
                   protocol: TCP
               resources:
                 requests:

@@ -18,10 +18,11 @@
 """Consume messages produced by advise-reporter.py faust app."""
 
 import logging
+import os
 
 from thoth.common import init_logging
 from thoth.messaging import MessageBase, AdviseJustificationMessage
-from prometheus_client import start_http_server, Gauge
+from advise_reporter import send_metrics_to_pushgateway
 
 init_logging()
 
@@ -29,21 +30,16 @@ _LOGGER = logging.getLogger("thoth.advise_reporter")
 
 app = MessageBase.app
 
-_METRIC_ADVISE_TYPE = Gauge(
-    "thoth_advise_message_number", "Number of thamos advise provided per message.", ["advise_message"]
-)
-
 advise_justification_topic = AdviseJustificationMessage().topic
 
 
 @app.agent(advise_justification_topic)
 async def consume_advise_justification(advise_justifications):
-    """Loop when a hash mismatch message is received."""
+    """Loop when a advise justification message is received."""
     async for advise_justification in advise_justifications:
-        _METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message).set(advise_justification.count)
-        _LOGGER.info("advise_message_number(%r)=%r", advise_justification.message, advise_justification.count)
+        # TODO: Expose metrics instead of sending to Pushgateway
+        send_metrics_to_pushgateway(advise_justification=advise_justification)
 
 
 if __name__ == "__main__":
-    start_http_server(8002)
     app.main()

@@ -22,7 +22,7 @@ import os
 
 from thoth.common import init_logging
 from thoth.messaging import MessageBase, AdviseJustificationMessage
-from advise_reporter import send_metrics_to_pushgateway
+from thoth.advise_reporter.advise_reporter import send_metrics_to_pushgateway
 
 init_logging()
 

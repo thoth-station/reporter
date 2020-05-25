@@ -35,11 +35,6 @@ parameters:
     name: "SUBCOMMAND"
     value: "consumer"
 
-  - description: "Thoth environment (test, stage, prod)."
-    displayName: "Environment"
-    required: true
-    name: "THOTH_ENVIRONMENT"
-
 objects:
   - kind: Route
     apiVersion: route.openshift.io/v1
@@ -100,8 +95,11 @@ objects:
                   value: ${{DEBUG_LEVEL}}
                 - name: APP_SCRIPT
                   value: "app.sh"
-                - name: THOTH_ENVIRONMENT
-                  value: "${THOTH_ENVIRONMENT}"
+                - name: THOTH_DEPLOYMENT_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      key: storage-bucket-name
+                      name: thoth
                 - name: PROMETHEUS_HOST_URL
                   valueFrom:
                     configMapKeyRef:

@@ -35,7 +35,7 @@ _METRIC_ADVISE_TYPE = Gauge(
     registry=prometheus_registry,
 )
 
-_THOTH_ENVIRONMENT = os.getenv("THOTH_ENVIRONMENT")
+_THOTH_ENVIRONMENT = os.environ["THOTH_DEPLOYMENT_NAME"]
 
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv(
     "PROMETHEUS_PUSHGATEWAY_URL",

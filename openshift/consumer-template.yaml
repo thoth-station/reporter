@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: advise-reporter-consumer-deployment
+  name: advise-reporter-consumer
   annotations:
     description: "Thoth: Advise Reporter Consumer"
     openshift.io/display-name: "Thoth Core: Advise Reporter Consumer"
@@ -13,7 +13,7 @@ metadata:
       Advise Reporter Consumer on OpenShift.
     template.openshift.io/provider-display-name: "Red Hat, Inc."
   labels:
-    template: advise-reporter-consumer-deployment
+    template: advise-reporter-consumer
     app: thoth
     component: advise-reporter-consumer
 
@@ -95,6 +95,11 @@ objects:
                   value: ${{DEBUG_LEVEL}}
                 - name: APP_SCRIPT
                   value: "app.sh"
+                - name: THOTH_DEPLOYMENT_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      key: storage-bucket-name
+                      name: thoth
                 - name: PROMETHEUS_HOST_URL
                   valueFrom:
                     configMapKeyRef:

@@ -31,9 +31,11 @@ prometheus_registry = CollectorRegistry()
 _METRIC_ADVISE_TYPE = Gauge(
     "thoth_advise_message_number",
     "Number of thamos advise provided per message.",
-    ["advise_message"],
+    ["advise_message", "thoth_environment"],
     registry=prometheus_registry,
 )
+
+_THOTH_ENVIRONMENT = os.environ["THOTH_DEPLOYMENT_NAME"]
 
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv(
     "PROMETHEUS_PUSHGATEWAY_URL",
@@ -63,7 +65,10 @@ def retrieve_adviser_reports_justifications(adviser_version: str):
 
 def send_metrics_to_pushgateway(advise_justification: Dict[str, Any]):
     """Send metrics to Pushgateway."""
-    _METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message).set(advise_justification.count)
+    _METRIC_ADVISE_TYPE.labels(
+        advise_message=advise_justification.message,
+        thoth_environment=_THOTH_ENVIRONMENT
+    ).set(advise_justification.count)
     _LOGGER.info("advise_message_number(%r)=%r", advise_justification.message, advise_justification.count)
 
     if _THOTH_METRICS_PUSHGATEWAY_URL:
@@ -76,5 +81,8 @@ def send_metrics_to_pushgateway(advise_justification: Dict[str, Any]):
 
 def expose_metrics(advise_justification: Dict[str, Any]):
     """Retrieve adviser reports justifications."""
-    _METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message).set(advise_justification.count)
+    _METRIC_ADVISE_TYPE.labels(
+        advise_message=advise_justification.message,
+        thoth_environment=_THOTH_ENVIRONMENT
+    ).set(advise_justification.count)
     _LOGGER.info("advise_message_number(%r)=%r", advise_justification.message, advise_justification.count)

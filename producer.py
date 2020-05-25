@@ -22,7 +22,7 @@ import logging
 import os
 
 from thoth.messaging import MessageBase, AdviseJustificationMessage
-from advise_reporter import retrieve_adviser_reports_justifications
+from thoth.advise_reporter.advise_reporter import retrieve_adviser_reports_justifications
 
 app = MessageBase.app
 

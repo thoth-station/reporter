@@ -111,9 +111,9 @@
         },
         "autopep8": {
             "hashes": [
-                "sha256:152fd8fe47d02082be86e05001ec23d6f420086db56b17fc883f3f965fb34954"
+                "sha256:60fd8c4341bab59963dafd5d2a566e94f547e660b9b396f772afe67d8481dbf0"
             ],
-            "version": "==1.5.2"
+            "version": "==1.5.3"
         },
         "backcall": {
             "hashes": [
@@ -1387,11 +1387,11 @@
         },
         "thoth-lab": {
             "hashes": [
-                "sha256:9c47f0a5cfd3e4fb2c1e7f6238d59f957a2d4d53b50561d94770be4a14dfcb99",
-                "sha256:f2b4fe1917374f892c98b7b092779320b1d5421fceb36fde1b18fb193f2ed5eb"
+                "sha256:19555160f3cd0212f55033b96200b437f0c129c2d3230d4ee0d848373133abfe",
+                "sha256:d7e2ebc6c97d2ace8832a1362c653ed92ab516d1370a1b5f01188f115ac69e6f"
             ],
             "index": "pypi",
-            "version": "==0.1.10"
+            "version": "==0.1.11"
         },
         "thoth-messaging": {
             "hashes": [

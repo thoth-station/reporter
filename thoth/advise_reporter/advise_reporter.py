@@ -23,25 +23,23 @@ import os
 from typing import Dict, Any
 from thoth.lab import adviser
 from thoth.messaging import MessageBase
+<<<<<<< HEAD
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+=======
+from thoth.advise_reporter.metrics import METRIC_ADVISE_TYPE
+>>>>>>> Add metrics
 
-_LOGGER = logging.getLogger("thoth.advise_reporter")
-
-prometheus_registry = CollectorRegistry()
-
-_METRIC_ADVISE_TYPE = Gauge(
-    "thoth_advise_message_number",
-    "Number of thamos advise provided per message.",
-    ["advise_message", "thoth_environment"],
-    registry=prometheus_registry,
-)
+_LOGGER = logging.getLogger(__name__)
 
 _THOTH_ENVIRONMENT = os.environ["THOTH_DEPLOYMENT_NAME"]
 
+<<<<<<< HEAD
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv(
     "PROMETHEUS_PUSHGATEWAY_URL", "pushgateway-dh-prod-monitoring.cloud.datahub.psi.redhat.com:80"
 )
 
+=======
+>>>>>>> Add metrics
 
 def retrieve_adviser_reports_justifications(adviser_version: str):
     """Retrieve adviser reports justifications."""
@@ -63,24 +61,9 @@ def retrieve_adviser_reports_justifications(adviser_version: str):
     return advise_justifications
 
 
-def send_metrics_to_pushgateway(advise_justification: MessageBase):
-    """Send metrics to Pushgateway."""
-    _METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message, thoth_environment=_THOTH_ENVIRONMENT).set(
-        advise_justification.count
-    )
-    _LOGGER.info("advise_message_number(%r)=%r", advise_justification.message, advise_justification.count)
-
-    if _THOTH_METRICS_PUSHGATEWAY_URL:
-        try:
-            _LOGGER.info(f"Submitting metrics to Prometheus pushgateway {_THOTH_METRICS_PUSHGATEWAY_URL}")
-            push_to_gateway(_THOTH_METRICS_PUSHGATEWAY_URL, job="advise-error-analysis", registry=prometheus_registry)
-        except Exception as e:
-            _LOGGER.info(f"An error occurred pushing the metrics: {str(e)}")
-
-
 def expose_metrics(advise_justification: MessageBase):
     """Retrieve adviser reports justifications."""
-    _METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message, thoth_environment=_THOTH_ENVIRONMENT).set(
+    METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message, thoth_environment=_THOTH_ENVIRONMENT).set(
         advise_justification.count
     )
     _LOGGER.info("advise_message_number(%r)=%r", advise_justification.message, advise_justification.count)

@@ -17,7 +17,6 @@
 
 """This is run periodically to provide metrics regarding Advise provided to Thoth Users."""
 
-import asyncio
 import logging
 import os
 
@@ -28,7 +27,7 @@ app = MessageBase.app
 
 ADVISER_VERSION = os.getenv("ADVISER_VERSION")
 
-_LOGGER = logging.getLogger("thoth.advise_reporter")
+_LOGGER = logging.getLogger(__name__)
 
 
 @app.command()
@@ -43,10 +42,7 @@ async def main():
         count = int(advise_justification_info["count"])
         try:
             await advise_justification.publish_to_topic(
-                advise_justification.MessageContents(
-                    message=message,
-                    count=count,
-                )
+                advise_justification.MessageContents(message=message, count=count)
             )
             _LOGGER.debug("Adviser justification message:\n%r\nCount:\n%r\n", message, count)
         except Exception as identifier:

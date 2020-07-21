@@ -3,13 +3,21 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[dev-packages]
-
 [packages]
 prometheus-client = "<0.7.0"
 thoth-lab = ">=0.1.10"
 thoth-common= "*"
 thoth-messaging= "*"
+
+[dev-packages]
+pytest = "*"
+pytest-timeout = "*"
+pytest-cov = "*"
+hypothesis-auto = "*"
+hypothesis = "*"
+pytest-mypy = "*"
+mypy = "*"
+pre-commit = "==2.0.1"
 
 [requires]
 python_version = "3.6"

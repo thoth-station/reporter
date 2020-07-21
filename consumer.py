@@ -18,7 +18,6 @@
 """Consume messages produced by advise-reporter.py faust app."""
 
 import logging
-import os
 
 from thoth.common import init_logging
 from thoth.messaging import MessageBase, AdviseJustificationMessage

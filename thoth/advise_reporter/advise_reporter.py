@@ -22,6 +22,7 @@ import os
 
 from typing import Dict, Any
 from thoth.lab import adviser
+from thoth.messaging import MessageBase
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
@@ -38,8 +39,7 @@ _METRIC_ADVISE_TYPE = Gauge(
 _THOTH_ENVIRONMENT = os.environ["THOTH_DEPLOYMENT_NAME"]
 
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv(
-    "PROMETHEUS_PUSHGATEWAY_URL",
-    "pushgateway-dh-prod-monitoring.cloud.datahub.psi.redhat.com:80"
+    "PROMETHEUS_PUSHGATEWAY_URL", "pushgateway-dh-prod-monitoring.cloud.datahub.psi.redhat.com:80"
 )
 
 
@@ -48,7 +48,7 @@ def retrieve_adviser_reports_justifications(adviser_version: str):
     adviser_dataframe = adviser.aggregate_adviser_results(adviser_version=adviser_version, limit_results=False)
     final_dataframe = adviser.create_final_dataframe(adviser_dataframe=adviser_dataframe)
 
-    advise_justifications = {}
+    advise_justifications: Dict[str, Any] = {}
 
     for index, row in final_dataframe[["jm_hash_id_encoded", "message", "type"]].iterrows():
         encoded_id = row["jm_hash_id_encoded"]
@@ -63,12 +63,11 @@ def retrieve_adviser_reports_justifications(adviser_version: str):
     return advise_justifications
 
 
-def send_metrics_to_pushgateway(advise_justification: Dict[str, Any]):
+def send_metrics_to_pushgateway(advise_justification: MessageBase):
     """Send metrics to Pushgateway."""
-    _METRIC_ADVISE_TYPE.labels(
-        advise_message=advise_justification.message,
-        thoth_environment=_THOTH_ENVIRONMENT
-    ).set(advise_justification.count)
+    _METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message, thoth_environment=_THOTH_ENVIRONMENT).set(
+        advise_justification.count
+    )
     _LOGGER.info("advise_message_number(%r)=%r", advise_justification.message, advise_justification.count)
 
     if _THOTH_METRICS_PUSHGATEWAY_URL:
@@ -79,10 +78,9 @@ def send_metrics_to_pushgateway(advise_justification: Dict[str, Any]):
             _LOGGER.info(f"An error occurred pushing the metrics: {str(e)}")
 
 
-def expose_metrics(advise_justification: Dict[str, Any]):
+def expose_metrics(advise_justification: MessageBase):
     """Retrieve adviser reports justifications."""
-    _METRIC_ADVISE_TYPE.labels(
-        advise_message=advise_justification.message,
-        thoth_environment=_THOTH_ENVIRONMENT
-    ).set(advise_justification.count)
+    _METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message, thoth_environment=_THOTH_ENVIRONMENT).set(
+        advise_justification.count
+    )
     _LOGGER.info("advise_message_number(%r)=%r", advise_justification.message, advise_justification.count)

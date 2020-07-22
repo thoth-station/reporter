@@ -21,25 +21,20 @@
 
 from thoth.advise_reporter import __service_version__
 
-from prometheus_client import CollectorRegistry, Gauge, Counter
+from prometheus_client import Gauge, Counter
 
-
-# A registry for the consumer metrics...
-prometheus_registry = CollectorRegistry()
 
 # add the application version info metric
-_API_GAUGE_METRIC = Gauge(
-    "advise_reporter_consumer_info",
-    "Adviser reporter Version Info",
-    labelnames=["version"],
-    registry=prometheus_registry,
-)
-_API_GAUGE_METRIC.labels(version=__service_version__).inc()
+advise_reporter_info = Gauge("advise_reporter_consumer_info", "Adviser reporter Version Info", labelnames=["version"])
+advise_reporter_info.labels(version=__service_version__).inc()
 
+# Metrics for Kafka
+in_progress = Gauge("investigators_in_progress", "Total number of investigation messages currently being processed.")
+exceptions = Counter("investigator_exceptions", "Number of investigation messages which failed to be processed.")
+success = Counter("investigators_processed", "Number of investigation messages which were successfully processed.")
 
 # Advise justifications
-
-METRIC_ADVISE_TYPE = Gauge(
+advise_justification_type = Gauge(
     "thoth_advise_message_number",
     "Number of thamos advise provided per message.",
     ["advise_message", "thoth_environment"],

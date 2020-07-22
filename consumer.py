@@ -18,13 +18,13 @@
 
 """Consume messages produced by advise-reporter.py faust app."""
 
+import os
 import logging
 
 from thoth.advise_reporter import __service_version__
 
 from thoth.messaging import MessageBase, AdviseJustificationMessage
 
-from thoth.advise_reporter.metrics import prometheus_registry
 from thoth.advise_reporter.advise_reporter import expose_metrics
 
 from aiohttp import web
@@ -49,7 +49,7 @@ advise_justification_topic = AdviseJustificationMessage().topic
 @app.page("/metrics")
 async def get_metrics(self, request):
     """Serve the metrics from the consumer registry."""
-    return web.Response(text=generate_latest(prometheus_registry).decode("utf-8"))
+    return web.Response(text=generate_latest().decode("utf-8"))
 
 
 @app.page("/_health")

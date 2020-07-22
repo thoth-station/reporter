@@ -23,23 +23,12 @@ import os
 from typing import Dict, Any
 from thoth.lab import adviser
 from thoth.messaging import MessageBase
-<<<<<<< HEAD
-from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
-=======
-from thoth.advise_reporter.metrics import METRIC_ADVISE_TYPE
->>>>>>> Add metrics
+from thoth.advise_reporter import metrics
 
 _LOGGER = logging.getLogger(__name__)
 
 _THOTH_ENVIRONMENT = os.environ["THOTH_DEPLOYMENT_NAME"]
 
-<<<<<<< HEAD
-_THOTH_METRICS_PUSHGATEWAY_URL = os.getenv(
-    "PROMETHEUS_PUSHGATEWAY_URL", "pushgateway-dh-prod-monitoring.cloud.datahub.psi.redhat.com:80"
-)
-
-=======
->>>>>>> Add metrics
 
 def retrieve_adviser_reports_justifications(adviser_version: str):
     """Retrieve adviser reports justifications."""
@@ -61,9 +50,13 @@ def retrieve_adviser_reports_justifications(adviser_version: str):
     return advise_justifications
 
 
+@metrics.exceptions.count_exceptions()
+@metrics.in_progress.track_inprogress()
 def expose_metrics(advise_justification: MessageBase):
     """Retrieve adviser reports justifications."""
-    METRIC_ADVISE_TYPE.labels(advise_message=advise_justification.message, thoth_environment=_THOTH_ENVIRONMENT).set(
-        advise_justification.count
-    )
+    metrics.advise_justification_type.labels(
+        advise_message=advise_justification.message, thoth_environment=_THOTH_ENVIRONMENT
+    ).set(advise_justification.count)
     _LOGGER.info("advise_message_number(%r)=%r", advise_justification.message, advise_justification.count)
+
+    metrics.success.inc()

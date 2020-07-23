@@ -34,8 +34,8 @@ exceptions = Counter("investigator_exceptions", "Number of investigation message
 success = Counter("investigators_processed", "Number of investigation messages which were successfully processed.")
 
 # Advise justifications
-advise_justification_type = Gauge(
-    "thoth_advise_message_number",
-    "Number of thamos advise provided per message.",
+advise_justification_type_number = Gauge(
+    "thoth_advise_justification_type_number",
+    "Number of advise justification provided per justification type.",
     ["advise_message", "thoth_environment"],
 )

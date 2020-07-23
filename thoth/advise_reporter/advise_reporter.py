@@ -56,7 +56,7 @@ def expose_metrics(advise_justification: MessageBase):
     """Retrieve adviser reports justifications."""
     metrics.advise_justification_type_number.labels(
         advise_message=advise_justification.message, thoth_environment=_THOTH_ENVIRONMENT
-    ).set(advise_justification.count)
+    ).inc(advise_justification.count)
     _LOGGER.info("advise_justification_type_number(%r)=%r", advise_justification.message, advise_justification.count)
 
     metrics.success.inc()

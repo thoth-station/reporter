@@ -34,10 +34,9 @@ DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
 ENVIRONMENT = os.environ["THOTH_ENVIRONMENT"]
 CEPH_BUCKET_PREFIX = os.environ["THOTH_CEPH_BUCKET_PREFIX"]
 PUBLIC_CEPH_BUCKET = os.environ["THOTH_PUBLIC_CEPH_BUCKET"]
-LIMIT_RESULTS = bool(int(os.getenv("THOTH_LIMIT_RESULTS", 1)))
-MAX_IDS = int(os.getenv("THOTH_MAX_IDS"))
+LIMIT_RESULTS = bool(int(os.getenv("THOTH_LIMIT_RESULTS", 0)))
+MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
 IS_STORING = bool(int(os.getenv("THOTH_IS_STORING", 0)))
-
 
 
 def produce_adviser_reports_justifications_dataframe(adviser_version: str) -> pd.DataFrame:
@@ -76,7 +75,7 @@ def parse_adviser_dataframe(
             advise_justification_df = pd.DataFrame(advise_justifications)
 
             if IS_STORING:
-                _LOGGER("Storing to Ceph...")
+                _LOGGER.info("Storing to Ceph...")
                 store_to_ceph(
                     advise_justification_df=advise_justification_df,
                     date_filter=date_filter,

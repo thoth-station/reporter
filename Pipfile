@@ -5,9 +5,9 @@ verify_ssl = true
 
 [packages]
 prometheus-client = "<0.7.0"
-thoth-lab = ">=0.1.10"
-thoth-common= "*"
-thoth-messaging= "*"
+thoth-report-processing = "*"
+thoth-common = "*"
+thoth-messaging = "*"
 
 [dev-packages]
 pytest = "*"

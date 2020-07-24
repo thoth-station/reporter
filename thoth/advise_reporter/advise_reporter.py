@@ -41,7 +41,7 @@ def produce_adviser_reports_justifications_dataframe(adviser_version: str) -> pd
     adviser_files = Adviser.aggregate_adviser_results(is_local=False, max_ids=50, limit_results=True)
     adviser_dataframe = Adviser.create_adviser_dataframe(adviser_version=adviser_version, adviser_files=adviser_files)
 
-    final_dataframe, _, _ = Adviser.create_summary_dataframes(adviser_dataframe=adviser_dataframe)
+    final_dataframe = Adviser.create_summary_dataframe(adviser_dataframe=adviser_dataframe)
 
     return final_dataframe
 
@@ -49,7 +49,7 @@ def produce_adviser_reports_justifications_dataframe(adviser_version: str) -> pd
 def parse_adviser_dataframe(
     final_dataframe: pd.DataFrame, date_filter: datetime.datetime, justification_type: str
 ) -> List[Dict[str, Any]]:
-    """Parse final dataframe to produce messages depending on the justification type"""
+    """Parse final dataframe to produce messages depending on the justification type."""
     justification_dataframe = final_dataframe[final_dataframe["type"] == justification_type]
 
     adviser_heatmap_df = Adviser.create_adviser_results_dataframe_heatmap(
@@ -71,46 +71,50 @@ def parse_adviser_dataframe(
 
         advise_justification_df = pd.DataFrame(advise_justifications)
 
-        store_to_ceph(advise_justification_df=advise_justification_df)
+        store_to_ceph(
+            advise_justification_df=advise_justification_df,
+            date_filter=date_filter,
+            justification_type=justification_type,
+        )
 
     return advise_justifications
 
-    def store_to_ceph(advise_justification_df: pd.DataFrame) -> None:
-        """Store results to Ceph for visualization"""
-        ceph_sli = Adviser.connect_to_ceph(
-            ceph_bucket_prefix=CEPH_BUCKET_PREFIX, processed_data_name="thoth-sli-metrics", environment=ENVIRONMENT
+
+def store_to_ceph(
+    advise_justification_df: pd.DataFrame, date_filter: datetime.datetime, justification_type: str
+) -> None:
+    """Store results to Ceph for visualization."""
+    ceph_sli = Adviser.connect_to_ceph(
+        ceph_bucket_prefix=CEPH_BUCKET_PREFIX, processed_data_name="thoth-sli-metrics", environment=ENVIRONMENT
+    )
+
+    public_ceph_sli = Adviser.connect_to_ceph(
+        ceph_bucket_prefix=CEPH_BUCKET_PREFIX,
+        processed_data_name="thoth-sli-metrics",
+        environment=ENVIRONMENT,
+        bucket=PUBLIC_CEPH_BUCKET,
+    )
+
+    result_class = f"adviser-justificaiton-{justification_type}"
+    ceph_path = f"{result_class}/{result_class}-{date_filter}.csv"
+
+    csv: str = advise_justification_df.to_csv(header=False)
+
+    try:
+        Adviser.store_csv_from_dataframe(
+            csv_from_df=csv, ceph_sli=ceph_sli, file_name=result_class, ceph_path=ceph_path,
         )
+    except Exception as e_ceph:
+        _LOGGER.exception(f"Could not store metrics on Thoth bucket on Ceph...{e_ceph}")
+        pass
 
-        public_ceph_sli = Adviser.connect_to_ceph(
-            ceph_bucket_prefix=CEPH_BUCKET_PREFIX,
-            processed_data_name="thoth-sli-metrics",
-            environment=ENVIRONMENT,
-            bucket=PUBLIC_CEPH_BUCKET,
+    try:
+        Adviser.store_csv_from_dataframe(
+            csv_from_df=csv, ceph_sli=public_ceph_sli, file_name=result_class, ceph_path=ceph_path, is_public=True
         )
-
-        result_class = f"adviser-justificaiton-{justification_type}"
-        ceph_path = f"{result_class}/{result_class}-{date_filter}.csv"
-
-        csv: str = advise_justification_df.to_csv(header=False)
-
-        try:
-            Adviser.store_csv_from_dataframe(
-                csv_from_df=csv,
-                ceph_sli=ceph_sli,
-                file_name=result_class,
-                ceph_path=ceph_path,
-            )
-        except Exception as e_ceph:
-            _LOGGER.exception(f"Could not store metrics on Thoth bucket on Ceph...{e_ceph}")
-            pass
-
-        try:
-            Adviser.store_csv_from_dataframe(
-                csv_from_df=csv, ceph_sli=public_ceph_sli, file_name=result_class, ceph_path=ceph_path, is_public=True
-            )
-        except Exception as e_ceph:
-            _LOGGER.exception(f"Could not store metrics on Public bucket on Ceph...{e_ceph}")
-            pass
+    except Exception as e_ceph:
+        _LOGGER.exception(f"Could not store metrics on Public bucket on Ceph...{e_ceph}")
+        pass
 
 
 @metrics.exceptions.count_exceptions()

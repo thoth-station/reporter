@@ -21,13 +21,14 @@
 from thoth.common import __version__ as __common__version__
 from thoth.common import init_logging
 from thoth.messaging import __version__ as __messaging__version__
-from thoth.lab import __version__ as __lab__version__
+from thoth.report_processing import __version__ as __report_processing__version__
 
 __version__ = "0.2.1"
-__service_version__ = f"{__version__}+\
-    messaging.{__messaging__version__}.\
-        common.{__common__version__}.\
-            lab.{__lab__version__}"
+__service_version__ = (
+    f"{__version__}+"
+    f"messaging.{__messaging__version__}."
+    f"common.{__common__version__}.report-processing.{__report_processing__version__}"
+)
 
 
 # Init logging here when gunicorn import this application.

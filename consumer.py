@@ -42,7 +42,7 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.info("Thoth Advise Reporter consumer v%s", __service_version__)
 
 # initialize the application
-app = MessageBase.app
+app = MessageBase().app
 advise_justification_topic = AdviseJustificationMessage().topic
 
 

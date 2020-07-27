@@ -88,3 +88,20 @@ all the things that you see...
 * Create messages
 * Create environment
 * Remove unused files
+
+## Release 0.3.0 (2020-07-27T16:47:24)
+* :pushpin: Automatic update of dependency hypothesis from 5.21.0 to 5.23.2 (#52)
+* Use report processing (#50)
+* :pushpin: Automatic update of dependency thoth-messaging from 0.3.7 to 0.5.0 (#48)
+* Expose metrics (#46)
+* Add pre commit (#44)
+* :pushpin: Automatic update of dependency thoth-common from 0.14.1 to 0.14.2 (#45)
+* :pushpin: Automatic update of dependency thoth-messaging from 0.3.6 to 0.3.7 (#43)
+* :pushpin: Automatic update of dependency thoth-messaging from 0.3.6 to 0.3.7 (#42)
+* :pushpin: Automatic update of dependency thoth-common from 0.13.13 to 0.14.1 (#41)
+* Migrate templates
+* Create OWNERS
+* :pushpin: Automatic update of dependency thoth-common from 0.13.12 to 0.13.13
+* :pushpin: Automatic update of dependency thoth-lab from 0.2.5 to 0.2.6
+* :pushpin: Automatic update of dependency thoth-common from 0.13.8 to 0.13.12
+* :pushpin: Automatic update of dependency thoth-lab from 0.1.11 to 0.2.5

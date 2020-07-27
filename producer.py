@@ -19,11 +19,13 @@
 
 import logging
 import os
+import datetime
 
 from thoth.messaging import MessageBase, AdviseJustificationMessage
-from thoth.advise_reporter.advise_reporter import retrieve_adviser_reports_justifications
+from thoth.advise_reporter.advise_reporter import produce_adviser_reports_justifications_dataframe
+from thoth.advise_reporter.advise_reporter import parse_adviser_dataframe
 
-app = MessageBase.app
+app = MessageBase().app
 
 ADVISER_VERSION = os.getenv("ADVISER_VERSION")
 
@@ -35,18 +37,34 @@ async def main():
     """Run advise-reporter to produce message."""
     advise_justification = AdviseJustificationMessage()
 
-    advise_justifications = retrieve_adviser_reports_justifications(adviser_version=ADVISER_VERSION)
+    date = datetime.datetime.utcnow() - datetime.timedelta(days=1)
 
-    for advise_justification_info in advise_justifications.values():
-        message = advise_justification_info["message"]
-        count = int(advise_justification_info["count"])
-        try:
-            await advise_justification.publish_to_topic(
-                advise_justification.MessageContents(message=message, count=count)
-            )
-            _LOGGER.debug("Adviser justification message:\n%r\nCount:\n%r\n", message, count)
-        except Exception as identifier:
-            _LOGGER.exception("Failed to publish with the following error message: %r", identifier)
+    final_dataframe = produce_adviser_reports_justifications_dataframe(adviser_version=ADVISER_VERSION)
+
+    for justification_type in ["INFO", "ERROR", "WARNING"]:
+        advise_justifications = parse_adviser_dataframe(
+            final_dataframe=final_dataframe, date_filter=date, justification_type=justification_type
+        )
+
+        if not advise_justifications:
+            _LOGGER.info(f"No adviser justifications of type {justification_type} found in date: {date}")
+
+        for advise_justification in advise_justifications:
+            message = advise_justification["message"]
+            justification_type = justification_type
+            count = advise_justification["count"]
+            try:
+                await advise_justification.publish_to_topic(
+                    advise_justification.MessageContents(message=message, count=count)
+                )
+                _LOGGER.debug(
+                    "Adviser justification message:\n%r\nJustification type:\n%r\nCount:\n%r\n",
+                    message,
+                    justification_type,
+                    count,
+                )
+            except Exception as identifier:
+                _LOGGER.exception("Failed to publish with the following error message: %r", identifier)
 
 
 if __name__ == "__main__":

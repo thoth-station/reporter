@@ -37,5 +37,5 @@ success = Counter("investigators_processed", "Number of investigation messages w
 advise_justification_type_number = Gauge(
     "thoth_advise_justification_type_number",
     "Number of advise justification provided per justification type.",
-    ["advise_message", "thoth_environment"],
+    ["advise_message", "justification_type", "thoth_environment"],
 )

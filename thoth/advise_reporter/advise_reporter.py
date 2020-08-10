@@ -101,7 +101,7 @@ def store_to_ceph(
     )
 
     result_class = f"adviser-justification-{justification_type}"
-    ceph_path = f"{result_class}/{result_class}-{date_filter}.csv"
+    ceph_path = f"{result_class}/{result_class}-{date_filter.strftime('%Y-%m-%d')}.csv"
 
     csv: str = advise_justification_df.to_csv(header=False)
 

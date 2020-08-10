@@ -105,3 +105,27 @@ all the things that you see...
 * :pushpin: Automatic update of dependency thoth-lab from 0.2.5 to 0.2.6
 * :pushpin: Automatic update of dependency thoth-common from 0.13.8 to 0.13.12
 * :pushpin: Automatic update of dependency thoth-lab from 0.1.11 to 0.2.5
+
+## Release 0.3.1 (2020-08-10T15:53:44)
+* Use only date to store (#77)
+* :pushpin: Automatic update of dependency thoth-messaging from 0.6.2 to 0.6.3 (#81)
+* :pushpin: Automatic update of dependency hypothesis from 5.23.12 to 5.24.0 (#80)
+* :pushpin: Automatic update of dependency thoth-messaging from 0.6.2 to 0.6.3 (#79)
+* :pushpin: Automatic update of dependency thoth-report-processing from 0.2.3 to 0.2.4 (#78)
+* Correct typo for storage (#76)
+* :pushpin: Automatic update of dependency hypothesis from 5.23.2 to 5.23.12 (#75)
+* :pushpin: Automatic update of dependency hypothesis from 5.23.2 to 5.23.12 (#73)
+* :pushpin: Automatic update of dependency pytest from 5.4.3 to 6.0.1 (#72)
+* :pushpin: Automatic update of dependency pytest from 5.4.3 to 6.0.1 (#71)
+* :pushpin: Automatic update of dependency hypothesis from 5.23.2 to 5.23.12 (#70)
+* :pushpin: Automatic update of dependency hypothesis from 5.23.2 to 5.23.12 (#69)
+* :pushpin: Automatic update of dependency pytest from 5.4.3 to 6.0.1 (#68)
+* :pushpin: Automatic update of dependency pytest from 5.4.3 to 6.0.1 (#67)
+* :pushpin: Automatic update of dependency thoth-common from 0.14.2 to 0.16.0 (#66)
+* :pushpin: Automatic update of dependency pytest from 5.4.3 to 6.0.1 (#65)
+* :pushpin: Automatic update of dependency pytest from 5.4.3 to 6.0.1 (#64)
+* :pushpin: Automatic update of dependency thoth-common from 0.14.2 to 0.16.0 (#63)
+* :pushpin: Automatic update of dependency thoth-common from 0.14.2 to 0.16.0 (#62)
+* :pushpin: Automatic update of dependency thoth-common from 0.14.2 to 0.16.0 (#61)
+* :pushpin: Automatic update of dependency thoth-report-processing from 0.2.2 to 0.2.3 (#59)
+* :pushpin: Automatic update of dependency thoth-report-processing from 0.2.2 to 0.2.3 (#58)

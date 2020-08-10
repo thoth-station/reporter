@@ -100,7 +100,7 @@ def store_to_ceph(
         bucket=PUBLIC_CEPH_BUCKET,
     )
 
-    result_class = f"adviser-justificaiton-{justification_type}"
+    result_class = f"adviser-justification-{justification_type}"
     ceph_path = f"{result_class}/{result_class}-{date_filter}.csv"
 
     csv: str = advise_justification_df.to_csv(header=False)

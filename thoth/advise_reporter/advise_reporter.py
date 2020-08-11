@@ -60,19 +60,36 @@ def parse_adviser_dataframe(
         adviser_heatmap_df = Adviser.create_adviser_results_dataframe_heatmap(
             adviser_type_dataframe=justification_dataframe, number_days=1
         )
-        last_date = [column for column in adviser_heatmap_df.columns][-1]
+        all_dates = [date for date in adviser_heatmap_df.columns.values]
+        last_date = all_dates[-1]
 
         if not adviser_heatmap_df.empty and last_date > date_filter:
-            subset_adviser_results = adviser_heatmap_df[[last_date]]
+            _LOGGER.info(f"New adviser runs identified for date: {date_filter}")
 
-            for index, row in subset_adviser_results[[last_date]].iterrows():
+            for considered_date in all_dates[::-1]:
+                # Only one column should exist because intervals of 1 are created
+                # using `create_adviser_results_dataframe_heatmap`
+                date_difference = considered_date - date_filter
+                if 0 < date_difference.total_seconds() < datetime.timedelta(days=1).total_seconds():
+                    selected_date = considered_date
+                    subset_adviser_results = adviser_heatmap_df[[selected_date]]
+                    _LOGGER.info(f"Date identified in column: {selected_date}")
+                    break
+
+            if not selected_date:
+                return advise_justifications
+
+            for index, row in subset_adviser_results[[selected_date]].iterrows():
                 message = index
-                if message not in [m["message"] for m in advise_justifications] and row[last_date] > 0:
+                if message not in [m["message"] for m in advise_justifications] and row[selected_date] > 0:
                     advise_justifications.append(
-                        {"date": last_date.strftime("%Y-%m-%d"), "message": message, "count": row[last_date]}
+                        {"date": selected_date.strftime("%Y-%m-%d"), "message": message, "count": row[selected_date]}
                     )
 
             advise_justification_df = pd.DataFrame(advise_justifications)
+
+            if advise_justification_df.empty:
+                return advise_justifications
 
             if IS_STORING:
                 _LOGGER.info("Storing to Ceph...")
@@ -100,7 +117,7 @@ def store_to_ceph(
         bucket=PUBLIC_CEPH_BUCKET,
     )
 
-    result_class = f"adviser-justification-{justification_type}"
+    result_class = f"adviser-justifications-{justification_type}"
     ceph_path = f"{result_class}/{result_class}-{date_filter.strftime('%Y-%m-%d')}.csv"
 
     csv: str = advise_justification_df.to_csv(header=False)

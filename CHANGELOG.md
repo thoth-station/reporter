@@ -129,3 +129,6 @@ all the things that you see...
 * :pushpin: Automatic update of dependency thoth-common from 0.14.2 to 0.16.0 (#61)
 * :pushpin: Automatic update of dependency thoth-report-processing from 0.2.2 to 0.2.3 (#59)
 * :pushpin: Automatic update of dependency thoth-report-processing from 0.2.2 to 0.2.3 (#58)
+
+## Release 0.3.2 (2020-08-12T07:40:38)
+* Adjust filtering and storage (#84)

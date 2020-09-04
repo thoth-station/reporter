@@ -24,10 +24,13 @@ import datetime
 from thoth.messaging import MessageBase, AdviseJustificationMessage
 from thoth.advise_reporter.advise_reporter import produce_adviser_reports_justifications_dataframe
 from thoth.advise_reporter.advise_reporter import parse_adviser_dataframe
+from thoth.advise_reporter import __service_version__
 
 app = MessageBase().app
 
 ADVISER_VERSION = os.getenv("ADVISER_VERSION")
+
+COMPONENT_NAME = "advise_reporter"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +58,12 @@ async def main():
             count = advise_justification["count"]
             try:
                 await advise_justification.publish_to_topic(
-                    advise_justification.MessageContents(message=message, count=count)
+                    advise_justification.MessageContents(
+                        message=message,
+                        count=count,
+                        component_name=COMPONENT_NAME,
+                        service_version=__service_version__,
+                    )
                 )
                 _LOGGER.debug(
                     "Adviser justification message:\n%r\nJustification type:\n%r\nCount:\n%r\n",

@@ -132,3 +132,9 @@ all the things that you see...
 
 ## Release 0.3.2 (2020-08-12T07:40:38)
 * Adjust filtering and storage (#84)
+
+## Release 0.3.3 (2020-09-07T19:14:33)
+### Features
+* add component and version to message (#87)
+### Automatic Updates
+* :pushpin: Automatic update of dependency hypothesis from 5.32.0 to 5.33.1 (#89)

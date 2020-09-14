@@ -138,3 +138,14 @@ all the things that you see...
 * add component and version to message (#87)
 ### Automatic Updates
 * :pushpin: Automatic update of dependency hypothesis from 5.32.0 to 5.33.1 (#89)
+
+## Release 0.4.0 (2020-09-14T11:33:42)
+### Features
+* Act only as producer (#92)
+### Automatic Updates
+* :pushpin: Automatic update of dependency pytest from 6.0.1 to 6.0.2 (#99)
+* :pushpin: Automatic update of dependency pytest from 6.0.1 to 6.0.2 (#98)
+* :pushpin: Automatic update of dependency thoth-common from 0.17.2 to 0.18.3 (#97)
+* :pushpin: Automatic update of dependency thoth-common from 0.17.2 to 0.18.3 (#96)
+* :pushpin: Automatic update of dependency thoth-report-processing from 0.3.0 to 0.3.4 (#95)
+* :pushpin: Automatic update of dependency thoth-report-processing from 0.3.0 to 0.3.4 (#94)

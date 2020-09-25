@@ -149,3 +149,9 @@ all the things that you see...
 * :pushpin: Automatic update of dependency thoth-common from 0.17.2 to 0.18.3 (#96)
 * :pushpin: Automatic update of dependency thoth-report-processing from 0.3.0 to 0.3.4 (#95)
 * :pushpin: Automatic update of dependency thoth-report-processing from 0.3.0 to 0.3.4 (#94)
+
+## Release 0.4.1 (2020-09-25T07:45:30)
+### Features
+* correct-variable (#103)
+### Automatic Updates
+* :pushpin: Automatic update of dependency hypothesis from 5.33.1 to 5.35.1 (#102)

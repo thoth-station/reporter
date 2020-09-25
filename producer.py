@@ -38,7 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 @app.command()
 async def main():
     """Run advise-reporter to produce message."""
-    advise_justification = AdviseJustificationMessage()
+    _advise_justification = AdviseJustificationMessage()
 
     date = datetime.datetime.utcnow() - datetime.timedelta(days=1)
 
@@ -57,7 +57,7 @@ async def main():
             justification_type = justification_type
             count = advise_justification["count"]
             try:
-                await advise_justification.publish_to_topic(
+                await _advise_justification.publish_to_topic(
                     advise_justification.MessageContents(
                         message=message,
                         count=count,

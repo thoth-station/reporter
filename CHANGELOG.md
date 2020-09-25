@@ -155,3 +155,7 @@ all the things that you see...
 * correct-variable (#103)
 ### Automatic Updates
 * :pushpin: Automatic update of dependency hypothesis from 5.33.1 to 5.35.1 (#102)
+
+## Release 0.4.2 (2020-09-25T08:30:10)
+### Improvements
+* Use correct variable (#106)

@@ -159,3 +159,7 @@ all the things that you see...
 ## Release 0.4.2 (2020-09-25T08:30:10)
 ### Improvements
 * Use correct variable (#106)
+
+## Release 0.4.3 (2020-09-25T10:35:39)
+### Features
+* Add missing parameter in message (#109)

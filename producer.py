@@ -58,7 +58,7 @@ async def main():
             count = advise_justification["count"]
             try:
                 await _advise_justification.publish_to_topic(
-                    advise_justification.MessageContents(
+                    _advise_justification.MessageContents(
                         message=message,
                         count=count,
                         component_name=COMPONENT_NAME,

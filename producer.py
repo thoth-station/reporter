@@ -54,13 +54,13 @@ async def main():
 
         for advise_justification in advise_justifications:
             message = advise_justification["message"]
-            justification_type = justification_type
             count = advise_justification["count"]
             try:
                 await _advise_justification.publish_to_topic(
                     _advise_justification.MessageContents(
                         message=message,
                         count=count,
+                        justification_type=justification_type,
                         component_name=COMPONENT_NAME,
                         service_version=__service_version__,
                     )

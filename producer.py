@@ -39,7 +39,7 @@ app = MessageBase().app
 
 ADVISER_VERSION = os.getenv("THOTH_ADVISER_VERSION", None)
 _LOGGER.info(f"THOTH_ADVISER_VERSION set to {ADVISER_VERSION}.")
-OLD_RELEASES = int(os.getenv("THOTH_OLD_RELEASES", 2))
+NUMBER_RELEASES = int(os.getenv("THOTH_NUMBER_RELEASES", 2))
 ONLY_STORE = bool(int(os.getenv("THOTH_ADVISE_REPORTER_ONLY_STORE", 0)))
 COMPONENT_NAME = "advise_reporter"
 EVALUATION_METRICS_DAYS = int(os.getenv("THOTH_EVALUATION_METRICS_NUMBER_DAYS", 1))
@@ -60,12 +60,15 @@ async def main():
 
     adviser_versions.append(ADVISER_VERSION)
 
+    if NUMBER_RELEASES < 1:
+        NUMBER_RELEASES = 1
+
     if not ADVISER_VERSION:
         package_name = "thoth-adviser"
         index_url = "https://pypi.org/simple"
         source = Source(index_url)
         # Consider only last two releases by default
-        adviser_versions = [str(v) for v in source.get_sorted_package_versions(package_name)][:OLD_RELEASES]
+        adviser_versions = [str(v) for v in source.get_sorted_package_versions(package_name)][:NUMBER_RELEASES]
 
     for i in range(0, EVALUATION_METRICS_DAYS):
         date = datetime.datetime.utcnow() - datetime.timedelta(days=i)

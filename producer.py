@@ -60,15 +60,17 @@ async def main():
 
     adviser_versions.append(ADVISER_VERSION)
 
-    if NUMBER_RELEASES < 1:
-        NUMBER_RELEASES = 1
+    number_releases = 1
+
+    if NUMBER_RELEASES:
+        number_releases = NUMBER_RELEASES
 
     if not ADVISER_VERSION:
         package_name = "thoth-adviser"
         index_url = "https://pypi.org/simple"
         source = Source(index_url)
         # Consider only last two releases by default
-        adviser_versions = [str(v) for v in source.get_sorted_package_versions(package_name)][:NUMBER_RELEASES]
+        adviser_versions = [str(v) for v in source.get_sorted_package_versions(package_name)][:number_releases]
 
     for i in range(0, EVALUATION_METRICS_DAYS):
         date = datetime.datetime.utcnow() - datetime.timedelta(days=i)

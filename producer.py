@@ -34,7 +34,7 @@ _LOGGER.info("Thoth advise reporter producer v%s", __service_version__)
 
 app = MessageBase().app
 
-ADVISER_VERSION = os.environ["ADVISER_VERSION"]
+ADVISER_VERSION = os.environ["THOTH_ADVISER_VERSION"]
 ONLY_STORE = bool(int(os.getenv("THOTH_ADVISE_REPORTER_ONLY_STORE", 0)))
 COMPONENT_NAME = "advise_reporter"
 EVALUATION_METRICS_DAYS = int(os.getenv("THOTH_EVALUATION_METRICS_NUMBER_DAYS", 1))

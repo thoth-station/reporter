@@ -25,8 +25,6 @@ import pandas as pd
 from typing import Dict, Any, List
 
 from thoth.report_processing.components import Adviser
-from thoth.messaging import MessageBase
-from thoth.advise_reporter import metrics
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,27 +32,22 @@ DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
 ENVIRONMENT = os.environ["THOTH_ENVIRONMENT"]
 CEPH_BUCKET_PREFIX = os.environ["THOTH_CEPH_BUCKET_PREFIX"]
 PUBLIC_CEPH_BUCKET = os.environ["THOTH_PUBLIC_CEPH_BUCKET"]
-LIMIT_RESULTS = bool(int(os.getenv("THOTH_LIMIT_RESULTS", 0)))
-MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
-IS_STORING = bool(int(os.getenv("THOTH_IS_STORING", 0)))
+
+IS_STORING = bool(int(os.getenv("THOTH_IS_STORING", 1)))
 
 
-def produce_adviser_reports_justifications_dataframe(adviser_version: str) -> pd.DataFrame:
-    """Produce adviser reports justifications dataframe."""
-    adviser_files = Adviser.aggregate_adviser_results(is_local=False, limit_results=LIMIT_RESULTS, max_ids=MAX_IDS)
-    adviser_dataframe = Adviser.create_adviser_dataframe(adviser_version=adviser_version, adviser_files=adviser_files)
-    final_dataframe = Adviser.create_summary_dataframe(adviser_dataframe=adviser_dataframe)
-
-    return final_dataframe
-
-
-def parse_adviser_dataframe(
-    final_dataframe: pd.DataFrame, date_filter: datetime.datetime, justification_type: str
+def parse_summary_dataframe(
+    advise_justifications: List[Dict[str, Any]],
+    summary_dataframe: pd.DataFrame,
+    date_filter: datetime.datetime,
+    justification_type: str,
+    adviser_version: str,
 ) -> List[Dict[str, Any]]:
-    """Parse final dataframe to produce messages depending on the justification type."""
-    justification_dataframe = final_dataframe[final_dataframe["type"] == justification_type]
+    """Parse final dataframe to produce messages depending on the justification type.
 
-    advise_justifications: List[Dict[str, Any]] = []
+    :param summary_dataframe: DataFrame as returned by `Adviser.create_summary_dataframe` method.
+    """
+    justification_dataframe = summary_dataframe[summary_dataframe["type"] == justification_type]
 
     if not justification_dataframe.empty:
         adviser_heatmap_df = Adviser.create_adviser_results_dataframe_heatmap(
@@ -66,6 +59,7 @@ def parse_adviser_dataframe(
         if not adviser_heatmap_df.empty and last_date > date_filter:
             _LOGGER.info(f"New adviser runs identified for date: {date_filter}")
 
+            selected_date = None
             for considered_date in all_dates[::-1]:
                 # Only one column should exist because intervals of 1 are created
                 # using `create_adviser_results_dataframe_heatmap`
@@ -81,30 +75,43 @@ def parse_adviser_dataframe(
 
             for index, row in subset_adviser_results[[selected_date]].iterrows():
                 message = index
-                if message not in [m["message"] for m in advise_justifications] and row[selected_date] > 0:
-                    advise_justifications.append(
-                        {"date": selected_date.strftime("%Y-%m-%d"), "message": message, "count": row[selected_date]}
-                    )
-
-            advise_justification_df = pd.DataFrame(advise_justifications)
-
-            if advise_justification_df.empty:
-                return advise_justifications
-
-            if IS_STORING:
-                _LOGGER.info("Storing to Ceph...")
-                store_to_ceph(
-                    advise_justification_df=advise_justification_df,
-                    date_filter=date_filter,
-                    justification_type=justification_type,
-                )
+                if "https://thoth-station.ninja/j" in message:
+                    if message not in [m["message"] for m in advise_justifications]:
+                        advise_justification = {
+                            "date": selected_date.strftime("%Y-%m-%d"),
+                            "message": message,
+                            "count": row[selected_date],
+                            "type": justification_type,
+                            "adviser_version": adviser_version,
+                        }
+                        if all(value is not None for value in advise_justification.values()):
+                            advise_justifications.append(advise_justification)
+                    else:
+                        if adviser_version not in [m["adviser_version"] for m in advise_justifications]:
+                            advise_justification = {
+                                "date": selected_date.strftime("%Y-%m-%d"),
+                                "message": message,
+                                "count": row[selected_date],
+                                "type": justification_type,
+                                "adviser_version": adviser_version,
+                            }
+                            if all(value is not None for value in advise_justification.values()):
+                                advise_justifications.append(advise_justification)
 
     return advise_justifications
 
 
-def store_to_ceph(
-    advise_justification_df: pd.DataFrame, date_filter: datetime.datetime, justification_type: str
-) -> None:
+def save_results_to_ceph(advise_justification_df: pd.DataFrame, date_filter: datetime.datetime):
+    """Save results on Ceph."""
+    if advise_justification_df.empty:
+        return advise_justification_df
+
+    if IS_STORING:
+        _LOGGER.info("Storing to Ceph...")
+        _store_to_ceph(advise_justification_df=advise_justification_df, date_filter=date_filter)
+
+
+def _store_to_ceph(advise_justification_df: pd.DataFrame, date_filter: datetime.datetime) -> None:
     """Store results to Ceph for visualization."""
     ceph_sli = Adviser.connect_to_ceph(
         ceph_bucket_prefix=CEPH_BUCKET_PREFIX, processed_data_name="thoth-sli-metrics", environment=ENVIRONMENT
@@ -117,18 +124,22 @@ def store_to_ceph(
         bucket=PUBLIC_CEPH_BUCKET,
     )
 
-    result_class = f"adviser-justifications-{justification_type}"
+    result_class = "adviser-justifications"
     ceph_path = f"{result_class}/{result_class}-{date_filter.strftime('%Y-%m-%d')}.csv"
 
-    csv: str = advise_justification_df.to_csv(header=False)
+    _LOGGER.info(f"Results to be stored on Ceph...{advise_justification_df}")
+
+    csv: str = advise_justification_df.to_csv(header=False, sep="`", index=False)
 
     try:
         Adviser.store_csv_from_dataframe(
-            csv_from_df=csv, ceph_sli=ceph_sli, file_name=result_class, ceph_path=ceph_path,
+            csv_from_df=csv, ceph_sli=ceph_sli, file_name=result_class, ceph_path=ceph_path
         )
     except Exception as e_ceph:
         _LOGGER.exception(f"Could not store metrics on Thoth bucket on Ceph...{e_ceph}")
         pass
+
+    _LOGGER.info(f"Successfully stored in Thoth bucket on Ceph...{ceph_path}")
 
     try:
         Adviser.store_csv_from_dataframe(
@@ -138,21 +149,4 @@ def store_to_ceph(
         _LOGGER.exception(f"Could not store metrics on Public bucket on Ceph...{e_ceph}")
         pass
 
-
-@metrics.exceptions.count_exceptions()
-@metrics.in_progress.track_inprogress()
-def expose_metrics(advise_justification: MessageBase):
-    """Retrieve adviser reports justifications."""
-    metrics.advise_justification_type_number.labels(
-        advise_message=advise_justification.message,
-        justification_type=advise_justification.justification_type,
-        thoth_environment=DEPLOYMENT_NAME,
-    ).inc(advise_justification.count)
-    _LOGGER.info(
-        "advise_justification_type_number(%r, %r)=%r",
-        advise_justification.message,
-        advise_justification.justification_type,
-        advise_justification.count,
-    )
-
-    metrics.success.inc()
+    _LOGGER.info(f"Successfully stored in Public bucket on Ceph...{ceph_path}")

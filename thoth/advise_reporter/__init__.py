@@ -19,17 +19,14 @@
 """This is advise reporter for Thoth adviser justifications."""
 
 from thoth.common import __version__ as __common__version__
-from thoth.common import init_logging
 from thoth.messaging import __version__ as __messaging__version__
 from thoth.report_processing import __version__ as __report_processing__version__
+from thoth.python import __version__ as __python__version__
 
 __version__ = "0.4.3"
 __service_version__ = (
     f"{__version__}+"
     f"messaging.{__messaging__version__}."
-    f"common.{__common__version__}.report-processing.{__report_processing__version__}"
+    f"common.{__common__version__}.report-processing.{__report_processing__version__}."
+    f"python.{__python__version__}"
 )
-
-
-# Init logging here when gunicorn import this application.
-init_logging()

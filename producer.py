@@ -23,18 +23,23 @@ import datetime
 
 import pandas as pd
 
+from typing import Dict, Any, List
+
 from thoth.messaging import MessageBase, AdviseJustificationMessage
 from thoth.report_processing.components.adviser import Adviser
 from thoth.advise_reporter.advise_reporter import parse_summary_dataframe, save_results_to_ceph
 from thoth.advise_reporter import __service_version__
 from thoth.common import init_logging
+from thoth.python import Source
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 _LOGGER.info("Thoth advise reporter producer v%s", __service_version__)
 
 app = MessageBase().app
 
-ADVISER_VERSION = os.environ["THOTH_ADVISER_VERSION"]
+ADVISER_VERSION = os.getenv("THOTH_ADVISER_VERSION", None)
+_LOGGER.info(f"THOTH_ADVISER_VERSION set to {ADVISER_VERSION}.")
+OLD_RELEASES = int(os.getenv("THOTH_OLD_RELEASES", 2))
 ONLY_STORE = bool(int(os.getenv("THOTH_ADVISE_REPORTER_ONLY_STORE", 0)))
 COMPONENT_NAME = "advise_reporter"
 EVALUATION_METRICS_DAYS = int(os.getenv("THOTH_EVALUATION_METRICS_NUMBER_DAYS", 1))
@@ -42,19 +47,25 @@ LIMIT_RESULTS = bool(int(os.getenv("THOTH_LIMIT_RESULTS", 0)))
 MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
 _LOGGER.info(f"THOTH_EVALUATION_METRICS_NUMBER_DAYS set to {EVALUATION_METRICS_DAYS}.")
 
+
 @app.command()
 async def main():
     """Run advise-reporter to produce message."""
     init_logging()
     _advise_justification = AdviseJustificationMessage()
 
-    adviser_files = Adviser.aggregate_adviser_results(
-        limit_results=LIMIT_RESULTS,
-        max_ids=MAX_IDS,
-    )
-    adviser_dataframe = Adviser.create_adviser_dataframe(adviser_version=ADVISER_VERSION, adviser_files=adviser_files)
+    adviser_files = Adviser.aggregate_adviser_results(limit_results=LIMIT_RESULTS, max_ids=MAX_IDS,)
 
-    adviser_summary_dataframe = Adviser.create_summary_dataframe(adviser_dataframe=adviser_dataframe)
+    adviser_versions = []
+
+    adviser_versions.append(ADVISER_VERSION)
+
+    if not ADVISER_VERSION:
+        package_name = "thoth-adviser"
+        index_url = "https://pypi.org/simple"
+        source = Source(index_url)
+        # Consider only last two releases by default
+        adviser_versions = [str(v) for v in source.get_sorted_package_versions(package_name)][:OLD_RELEASES]
 
     for i in range(0, EVALUATION_METRICS_DAYS):
         date = datetime.datetime.utcnow() - datetime.timedelta(days=i)
@@ -62,27 +73,32 @@ async def main():
 
         advise_justifications: List[Dict[str, Any]] = []
 
-        for justification_type in ["INFO", "ERROR", "WARNING"]:
-
-            advise_justifications = parse_summary_dataframe(
-                advise_justifications=advise_justifications,
-                summary_dataframe=adviser_summary_dataframe,
-                date_filter=date,
-                justification_type=justification_type,
+        for adviser_version in adviser_versions:
+            adviser_dataframe = Adviser.create_adviser_dataframe(
+                adviser_version=adviser_version, adviser_files=adviser_files
             )
 
-        if not advise_justifications:
-            _LOGGER.info(f"No adviser justifications found in date: {date.strftime('%Y-%m-%d')}")
+            adviser_summary_dataframe = Adviser.create_summary_dataframe(adviser_dataframe=adviser_dataframe)
 
-            if EVALUATION_METRICS_DAYS == 1:
-                return 
+            for justification_type in ["INFO", "ERROR", "WARNING"]:
+
+                advise_justifications = parse_summary_dataframe(
+                    advise_justifications=advise_justifications,
+                    summary_dataframe=adviser_summary_dataframe,
+                    date_filter=date,
+                    justification_type=justification_type,
+                    adviser_version=adviser_version,
+                )
+
+        if not advise_justifications:
+            _LOGGER.info(
+                f"No adviser justifications found in date: {date.strftime('%Y-%m-%d')}"
+                f"for adviser versions: {adviser_versions}"
+            )
 
         advise_justification_df = pd.DataFrame(advise_justifications)
 
-        save_results_to_ceph(
-            advise_justification_df=advise_justification_df,
-            date_filter=date
-        )
+        save_results_to_ceph(advise_justification_df=advise_justification_df, date_filter=date)
 
     if ONLY_STORE or EVALUATION_METRICS_DAYS > 1:
         return
@@ -91,6 +107,7 @@ async def main():
         message = advise_justification["message"]
         count = advise_justification["count"]
         justification_type = advise_justification["type"]
+        adviser_version = advise_justification["adviser_version"]
 
         try:
             await _advise_justification.publish_to_topic(
@@ -98,6 +115,7 @@ async def main():
                     message=message,
                     count=int(count),
                     justification_type=justification_type,
+                    adviser_version=adviser_version,
                     component_name=COMPONENT_NAME,
                     service_version=__service_version__,
                 )

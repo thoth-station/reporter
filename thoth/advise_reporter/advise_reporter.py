@@ -36,20 +36,12 @@ PUBLIC_CEPH_BUCKET = os.environ["THOTH_PUBLIC_CEPH_BUCKET"]
 IS_STORING = bool(int(os.getenv("THOTH_IS_STORING", 1)))
 
 
-def produce_adviser_reports_justifications_dataframe(adviser_version: str) -> pd.DataFrame:
-    """Produce adviser reports justifications dataframe."""
-    adviser_files = Adviser.aggregate_adviser_results(is_local=False, limit_results=LIMIT_RESULTS, max_ids=MAX_IDS)
-    adviser_dataframe = Adviser.create_adviser_dataframe(adviser_version=adviser_version, adviser_files=adviser_files)
-    final_dataframe = Adviser.create_summary_dataframe(adviser_dataframe=adviser_dataframe)
-
-    return final_dataframe
-
-
 def parse_summary_dataframe(
     advise_justifications: List[Dict[str, Any]],
     summary_dataframe: pd.DataFrame,
     date_filter: datetime.datetime,
     justification_type: str,
+    adviser_version: str,
 ) -> List[Dict[str, Any]]:
     """Parse final dataframe to produce messages depending on the justification type.
 
@@ -67,6 +59,7 @@ def parse_summary_dataframe(
         if not adviser_heatmap_df.empty and last_date > date_filter:
             _LOGGER.info(f"New adviser runs identified for date: {date_filter}")
 
+            selected_date = None
             for considered_date in all_dates[::-1]:
                 # Only one column should exist because intervals of 1 are created
                 # using `create_adviser_results_dataframe_heatmap`
@@ -89,6 +82,7 @@ def parse_summary_dataframe(
                             "message": message,
                             "count": row[selected_date],
                             "type": justification_type,
+                            "adviser_version": adviser_version,
                         }
                     )
 
@@ -118,12 +112,12 @@ def _store_to_ceph(advise_justification_df: pd.DataFrame, date_filter: datetime.
         bucket=PUBLIC_CEPH_BUCKET,
     )
 
-    result_class = f"adviser-justifications"
+    result_class = "adviser-justifications"
     ceph_path = f"{result_class}/{result_class}-{date_filter.strftime('%Y-%m-%d')}.csv"
 
     _LOGGER.info(f"Results to be stored on Ceph...{advise_justification_df}")
 
-    csv: str = advise_justification_df.to_csv(header=False, sep ='`', index=False)
+    csv: str = advise_justification_df.to_csv(header=False, sep="`", index=False)
 
     try:
         Adviser.store_csv_from_dataframe(

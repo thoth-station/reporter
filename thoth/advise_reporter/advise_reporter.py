@@ -75,27 +75,28 @@ def parse_summary_dataframe(
 
             for index, row in subset_adviser_results[[selected_date]].iterrows():
                 message = index
-                if message not in [m["message"] for m in advise_justifications]:
-                    advise_justification = {
+                if "https://thoth-station.ninja/j" in message:
+                    if message not in [m["message"] for m in advise_justifications]:
+                        advise_justification = {
                             "date": selected_date.strftime("%Y-%m-%d"),
                             "message": message,
                             "count": row[selected_date],
                             "type": justification_type,
                             "adviser_version": adviser_version,
                         }
-                    if all(value != None for value in advise_justification.values()):
-                        advise_justifications.append(advise_justification)
-                else:
-                    if adviser_version not in [m["adviser_version"] for m in advise_justifications]:
-                        advise_justification = {
+                        if all(value is not None for value in advise_justification.values()):
+                            advise_justifications.append(advise_justification)
+                    else:
+                        if adviser_version not in [m["adviser_version"] for m in advise_justifications]:
+                            advise_justification = {
                                 "date": selected_date.strftime("%Y-%m-%d"),
                                 "message": message,
                                 "count": row[selected_date],
                                 "type": justification_type,
                                 "adviser_version": adviser_version,
                             }
-                        if all(value != None for value in advise_justification.values()):
-                            advise_justifications.append(advise_justification)
+                            if all(value is not None for value in advise_justification.values()):
+                                advise_justifications.append(advise_justification)
 
     return advise_justifications
 

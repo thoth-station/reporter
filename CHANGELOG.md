@@ -163,3 +163,14 @@ all the things that you see...
 ## Release 0.4.3 (2020-09-25T10:35:39)
 ### Features
 * Add missing parameter in message (#109)
+
+## Release 0.4.4 (2020-10-06T13:50:40)
+### Improvements
+* Adjust logic and logging, refactor code and introduce day scheduling and filter for adviser version (#119)
+### Automatic Updates
+* :pushpin: Automatic update of dependency hypothesis from 5.36.0 to 5.36.1 (#118)
+* :pushpin: Automatic update of dependency hypothesis from 5.36.0 to 5.36.1 (#117)
+* :pushpin: Automatic update of dependency hypothesis from 5.36.0 to 5.36.1 (#116)
+* :pushpin: Automatic update of dependency pytest from 6.0.2 to 6.1.0 (#115)
+* :pushpin: Automatic update of dependency pytest from 6.0.2 to 6.1.0 (#114)
+* :pushpin: Automatic update of dependency thoth-messaging from 0.7.6 to 0.7.10 (#113)

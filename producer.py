@@ -98,7 +98,7 @@ async def main():
         if not advise_justifications:
             _LOGGER.info(
                 f"No adviser justifications found in date: {date.strftime('%Y-%m-%d')}"
-                f"for adviser versions: {adviser_versions}"
+                f" for adviser versions: {adviser_versions}"
             )
 
         advise_justification_df = pd.DataFrame(advise_justifications)

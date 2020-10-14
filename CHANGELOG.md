@@ -174,3 +174,9 @@ all the things that you see...
 * :pushpin: Automatic update of dependency pytest from 6.0.2 to 6.1.0 (#115)
 * :pushpin: Automatic update of dependency pytest from 6.0.2 to 6.1.0 (#114)
 * :pushpin: Automatic update of dependency thoth-messaging from 0.7.6 to 0.7.10 (#113)
+
+## Release 0.4.5 (2020-10-14T09:46:35)
+### Features
+* Include all messages (#122)
+### Improvements
+* Use standard env variable only (#124)

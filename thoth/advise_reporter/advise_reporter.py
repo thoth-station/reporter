@@ -28,8 +28,8 @@ from thoth.report_processing.components import Adviser
 
 _LOGGER = logging.getLogger(__name__)
 
-DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
-ENVIRONMENT = os.environ["THOTH_ENVIRONMENT"]
+ENVIRONMENT = os.environ["THOTH_DEPLOYMENT_NAME"].split("-")[1]
+
 CEPH_BUCKET_PREFIX = os.environ["THOTH_CEPH_BUCKET_PREFIX"]
 PUBLIC_CEPH_BUCKET = os.environ["THOTH_PUBLIC_CEPH_BUCKET"]
 

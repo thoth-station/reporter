@@ -7,7 +7,7 @@ verify_ssl = true
 prometheus-client = "<0.7.0"
 thoth-report-processing = "*"
 thoth-common = "*"
-thoth-messaging = "*"
+thoth-messaging = "==0.7.13"
 thoth-python = "*"
 
 [dev-packages]

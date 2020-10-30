@@ -1142,11 +1142,11 @@
         },
         "hypothesis": {
             "hashes": [
-                "sha256:54bf2efa1da1286a348c436b4f815284107c6724fb3627f2522c2d02e3e559b5",
-                "sha256:bf3195e6a8b3dd5b285dbaa1cabdec7b3eea19bd16843227d2352a6bc58c17bd"
+                "sha256:3f1d356818a490d0aa1c7a1ca29935300c003ae8f99a44293398d0dfd7c0b186",
+                "sha256:c97cb378bdecb548b69b40e3cab3e78d22ad9fb4d10f0ef55132efd82c9624ec"
             ],
             "index": "pypi",
-            "version": "==5.37.3"
+            "version": "==5.39.0"
         },
         "hypothesis-auto": {
             "hashes": [

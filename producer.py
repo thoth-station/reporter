@@ -27,7 +27,7 @@ from typing import Dict, Any, List
 
 from thoth.messaging import MessageBase, AdviseJustificationMessage
 from thoth.report_processing.components.adviser import Adviser
-from thoth.advise_reporter.advise_reporter import parse_summary_dataframe, save_results_to_ceph
+from thoth.advise_reporter.advise_reporter import save_results_to_ceph
 from thoth.advise_reporter import __service_version__
 from thoth.common import init_logging
 from thoth.python import Source
@@ -72,6 +72,25 @@ async def main():
         # Consider only last two releases by default
         adviser_versions = [str(v) for v in source.get_sorted_package_versions(package_name)][:number_releases]
 
+    justifications_collected: List[Dict[str, Any]] = []
+
+    for adviser_version in adviser_versions:
+        justifications_collected = Adviser.create_adviser_dataframe(
+            adviser_version=adviser_version,
+            adviser_files=adviser_files,
+            justifications_collected=justifications_collected,
+        )
+
+    adviser_dataframe = Adviser._create_adviser_dataframe(justifications_collected)
+
+    if adviser_dataframe.empty:
+        _LOGGER.exception("No adviser documents identified")
+        return
+
+    adviser_dataframe["date_"] = [
+        pd.to_datetime(str(v_date)).strftime("%Y-%m-%d") for v_date in adviser_dataframe["date"].values
+    ]
+
     for i in range(0, EVALUATION_METRICS_DAYS):
         date = datetime.datetime.utcnow() - datetime.timedelta(days=i)
         _LOGGER.info(f"Date considered: {date.strftime('%Y-%m-%d')}")
@@ -79,21 +98,30 @@ async def main():
         advise_justifications: List[Dict[str, Any]] = []
 
         for adviser_version in adviser_versions:
-            adviser_dataframe = Adviser.create_adviser_dataframe(
-                adviser_version=adviser_version, adviser_files=adviser_files
-            )
+            for unique_message in adviser_dataframe["message"].unique():
+                subset_df = adviser_dataframe[
+                    (adviser_dataframe["message"] == unique_message)
+                    & (adviser_dataframe["date_"] == str(date.strftime("%Y-%m-%d")))
+                    & (adviser_dataframe["analyzer_version"] == adviser_version)
+                ]
 
-            adviser_summary_dataframe = Adviser.create_summary_dataframe(adviser_dataframe=adviser_dataframe)
+                if not subset_df.empty:
+                    counts = subset_df.shape[0]
 
-            for justification_type in ["INFO", "ERROR", "WARNING"]:
+                    types = [t for t in subset_df["type"].unique()]
 
-                advise_justifications = parse_summary_dataframe(
-                    advise_justifications=advise_justifications,
-                    summary_dataframe=adviser_summary_dataframe,
-                    date_filter=date,
-                    justification_type=justification_type,
-                    adviser_version=adviser_version,
-                )
+                    if len(types) > 1:
+                        _LOGGER.warning(f"type assigned to same message is different {types}")
+
+                    advise_justifications.append(
+                        {
+                            "date": date.strftime("%Y-%m-%d"),
+                            "message": unique_message,
+                            "count": counts,
+                            "type": types[0],
+                            "adviser_version": adviser_version,
+                        }
+                    )
 
         if not advise_justifications:
             _LOGGER.info(

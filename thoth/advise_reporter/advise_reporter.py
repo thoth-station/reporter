@@ -22,7 +22,6 @@ import os
 import datetime
 
 import pandas as pd
-from typing import Dict, Any, List
 
 from thoth.report_processing.components import Adviser
 
@@ -34,73 +33,6 @@ CEPH_BUCKET_PREFIX = os.environ["THOTH_CEPH_BUCKET_PREFIX"]
 PUBLIC_CEPH_BUCKET = os.environ["THOTH_PUBLIC_CEPH_BUCKET"]
 
 IS_STORING = bool(int(os.getenv("THOTH_IS_STORING", 1)))
-
-
-def parse_summary_dataframe(
-    advise_justifications: List[Dict[str, Any]],
-    summary_dataframe: pd.DataFrame,
-    date_filter: datetime.datetime,
-    justification_type: str,
-    adviser_version: str,
-) -> List[Dict[str, Any]]:
-    """Parse final dataframe to produce messages depending on the justification type.
-
-    :param summary_dataframe: DataFrame as returned by `Adviser.create_summary_dataframe` method.
-    """
-    justification_dataframe = summary_dataframe[summary_dataframe["type"] == justification_type]
-
-    if not justification_dataframe.empty:
-        adviser_heatmap_df = Adviser.create_adviser_results_dataframe_heatmap(
-            adviser_type_dataframe=justification_dataframe, number_days=1
-        )
-        all_dates = [date for date in adviser_heatmap_df.columns.values]
-        last_date = all_dates[-1]
-
-        if not adviser_heatmap_df.empty and last_date > date_filter:
-            _LOGGER.info(f"New adviser runs identified for date: {date_filter}")
-
-            selected_date = None
-            for considered_date in all_dates[::-1]:
-                # Only one column should exist because intervals of 1 are created
-                # using `create_adviser_results_dataframe_heatmap`
-                date_difference = considered_date - date_filter
-                if 0 < date_difference.total_seconds() < datetime.timedelta(days=1).total_seconds():
-                    selected_date = considered_date
-                    subset_adviser_results = adviser_heatmap_df[[selected_date]]
-                    _LOGGER.info(f"Date identified in column: {selected_date}")
-                    break
-
-            if not selected_date:
-                return advise_justifications
-
-            for index, row in subset_adviser_results[[selected_date]].iterrows():
-                message = index
-
-                if message not in [m["message"] for m in advise_justifications]:
-                    advise_justification = {
-                        "date": selected_date.strftime("%Y-%m-%d"),
-                        "message": message,
-                        "count": row[selected_date],
-                        "type": justification_type,
-                        "adviser_version": adviser_version,
-                    }
-
-                    if all(value is not None for value in advise_justification.values()):
-                        advise_justifications.append(advise_justification)
-                else:
-                    if adviser_version not in [m["adviser_version"] for m in advise_justifications]:
-                        advise_justification = {
-                            "date": selected_date.strftime("%Y-%m-%d"),
-                            "message": message,
-                            "count": row[selected_date],
-                            "type": justification_type,
-                            "adviser_version": adviser_version,
-                        }
-
-                        if all(value is not None for value in advise_justification.values()):
-                            advise_justifications.append(advise_justification)
-
-    return advise_justifications
 
 
 def save_results_to_ceph(advise_justification_df: pd.DataFrame, date_filter: datetime.datetime):

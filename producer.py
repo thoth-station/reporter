@@ -54,8 +54,6 @@ async def main():
     init_logging()
     _advise_justification = AdviseJustificationMessage()
 
-    adviser_files = Adviser.aggregate_adviser_results(limit_results=LIMIT_RESULTS, max_ids=MAX_IDS,)
-
     adviser_versions = []
 
     adviser_versions.append(ADVISER_VERSION)
@@ -72,71 +70,83 @@ async def main():
         # Consider only last two releases by default
         adviser_versions = [str(v) for v in source.get_sorted_package_versions(package_name)][:number_releases]
 
-    justifications_collected: List[Dict[str, Any]] = []
-
-    for adviser_version in adviser_versions:
-        justifications_collected = Adviser.create_adviser_dataframe(
-            adviser_version=adviser_version,
-            adviser_files=adviser_files,
-            justifications_collected=justifications_collected,
-        )
-
-    adviser_dataframe = Adviser._create_adviser_dataframe(justifications_collected)
-
-    if adviser_dataframe.empty:
-        _LOGGER.exception("No adviser documents identified")
-        return
-
-    adviser_dataframe["date_"] = [
-        pd.to_datetime(str(v_date)).strftime("%Y-%m-%d") for v_date in adviser_dataframe["date"].values
-    ]
+    total_justifications: List[Dict[str, Any]] = []
 
     for i in range(0, EVALUATION_METRICS_DAYS):
-        date = datetime.datetime.utcnow() - datetime.timedelta(days=i)
-        _LOGGER.info(f"Date considered: {date.strftime('%Y-%m-%d')}")
+        initial_date = datetime.datetime.utcnow() - datetime.timedelta(days=i)
+        _LOGGER.info(f"Date considered: {initial_date.strftime('%d-%m-%Y')}")
 
-        advise_justifications: List[Dict[str, Any]] = []
+        adviser_files = Adviser.aggregate_adviser_results(
+            initial_date=initial_date.strftime('%d-%m-%Y'),
+            limit_results=LIMIT_RESULTS,
+            max_ids=MAX_IDS
+        )
+
+        justifications_collected: List[Dict[str, Any]] = []
 
         for adviser_version in adviser_versions:
-            for unique_message in adviser_dataframe["message"].unique():
-                subset_df = adviser_dataframe[
-                    (adviser_dataframe["message"] == unique_message)
-                    & (adviser_dataframe["date_"] == str(date.strftime("%Y-%m-%d")))
-                    & (adviser_dataframe["analyzer_version"] == adviser_version)
-                ]
-
-                if not subset_df.empty:
-                    counts = subset_df.shape[0]
-
-                    types = [t for t in subset_df["type"].unique()]
-
-                    if len(types) > 1:
-                        _LOGGER.warning(f"type assigned to same message is different {types}")
-
-                    advise_justifications.append(
-                        {
-                            "date": date.strftime("%Y-%m-%d"),
-                            "message": unique_message,
-                            "count": counts,
-                            "type": types[0],
-                            "adviser_version": adviser_version,
-                        }
-                    )
-
-        if not advise_justifications:
-            _LOGGER.info(
-                f"No adviser justifications found in date: {date.strftime('%Y-%m-%d')}"
-                f" for adviser versions: {adviser_versions}"
+            justifications_collected = Adviser.create_adviser_dataframe(
+                adviser_version=adviser_version,
+                adviser_files=adviser_files,
+                justifications_collected=justifications_collected,
             )
 
-        advise_justification_df = pd.DataFrame(advise_justifications)
+        adviser_dataframe = Adviser._create_adviser_dataframe(justifications_collected)
 
-        save_results_to_ceph(advise_justification_df=advise_justification_df, date_filter=date)
+        if not adviser_dataframe.empty:
+
+            adviser_dataframe["date_"] = [
+                pd.to_datetime(str(v_date)).strftime("%Y-%m-%d") for v_date in adviser_dataframe["date"].values
+            ]
+
+            advise_justifications: List[Dict[str, Any]] = []
+
+            for adviser_version in adviser_versions:
+                for unique_message in adviser_dataframe["message"].unique():
+                    subset_df = adviser_dataframe[
+                        (adviser_dataframe["message"] == unique_message)
+                        & (adviser_dataframe["date_"] == str(initial_date.strftime("%Y-%m-%d")))
+                        & (adviser_dataframe["analyzer_version"] == adviser_version)
+                    ]
+
+                    if not subset_df.empty:
+                        counts = subset_df.shape[0]
+
+                        types = [t for t in subset_df["type"].unique()]
+
+                        if len(types) > 1:
+                            _LOGGER.warning("type assigned to same message is different %s", types)
+
+                        advise_justifications.append(
+                            {
+                                "date": initial_date.strftime("%Y-%m-%d"),
+                                "message": unique_message,
+                                "count": counts,
+                                "type": types[0],
+                                "adviser_version": adviser_version,
+                            }
+                        )
+
+            if not advise_justifications:
+                _LOGGER.info(
+                    f"No adviser justifications found in date: {initial_date.strftime('%Y-%m-%d')}"
+                    f" for adviser versions: {adviser_versions}"
+                )
+
+            total_justifications += advise_justifications
+
+            advise_justification_df = pd.DataFrame(advise_justifications)
+
+            save_results_to_ceph(advise_justification_df=advise_justification_df, date_filter=initial_date)
+
+        else:
+            _LOGGER.exception(f"No adviser documents identified on {initial_date.strftime('%d-%m-%Y')}")
+
 
     if ONLY_STORE or EVALUATION_METRICS_DAYS > 1:
         return
 
-    for advise_justification in advise_justifications:
+    for advise_justification in total_justifications:
         message = advise_justification["message"]
         count = advise_justification["count"]
         justification_type = advise_justification["type"]

@@ -77,9 +77,7 @@ async def main():
         _LOGGER.info(f"Date considered: {initial_date.strftime('%d-%m-%Y')}")
 
         adviser_files = Adviser.aggregate_adviser_results(
-            initial_date=initial_date.strftime('%d-%m-%Y'),
-            limit_results=LIMIT_RESULTS,
-            max_ids=MAX_IDS
+            initial_date=initial_date.strftime("%d-%m-%Y"), limit_results=LIMIT_RESULTS, max_ids=MAX_IDS
         )
 
         justifications_collected: List[Dict[str, Any]] = []
@@ -141,7 +139,6 @@ async def main():
 
         else:
             _LOGGER.exception(f"No adviser documents identified on {initial_date.strftime('%d-%m-%Y')}")
-
 
     if ONLY_STORE or EVALUATION_METRICS_DAYS > 1:
         return

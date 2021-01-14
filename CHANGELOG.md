@@ -312,3 +312,15 @@ all the things that you see...
 * :pushpin: Automatic update of dependency thoth-messaging from 0.3.4 to 0.3.6
 * :pushpin: Automatic update of dependency thoth-common from 0.13.2 to 0.13.6
 * :pushpin: Automatic update of dependency thoth-common from 0.12.6 to 0.13.2
+
+## Release 0.5.0 (2021-01-14T17:01:21)
+### Features
+* :arrow_up: Automatic update of dependencies by kebechet. (#145)
+* update .aicoe-ci.yaml (#144)
+* port to python 38 (#143)
+### Improvements
+* Adjust processing of all justifications (#146)
+### Automatic Updates
+* :pushpin: Automatic update of dependency hypothesis from 5.37.3 to 5.39.0 (#142)
+* :pushpin: Automatic update of dependency hypothesis from 5.37.3 to 5.39.0 (#141)
+* :pushpin: Automatic update of dependency hypothesis from 5.37.3 to 5.39.0 (#140)

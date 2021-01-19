@@ -25,7 +25,8 @@ import pandas as pd
 
 from typing import Dict, Any, List
 
-from thoth.messaging import MessageBase, AdviseJustificationMessage
+from thoth.messaging import AdviseJustificationMessage
+import thoth.messaging.producer as producer
 from thoth.report_processing.components.adviser import Adviser
 from thoth.advise_reporter.advise_reporter import save_results_to_ceph
 from thoth.advise_reporter import __service_version__
@@ -35,7 +36,7 @@ from thoth.python import Source
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 _LOGGER.info("Thoth advise reporter producer v%s", __service_version__)
 
-app = MessageBase().app
+p = producer.create_producer()
 
 ADVISER_VERSION = os.getenv("THOTH_ADVISER_VERSION", None)
 _LOGGER.info(f"THOTH_ADVISER_VERSION set to {ADVISER_VERSION}.")
@@ -48,11 +49,9 @@ MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
 _LOGGER.info(f"THOTH_EVALUATION_METRICS_NUMBER_DAYS set to {EVALUATION_METRICS_DAYS}.")
 
 
-@app.command()
-async def main():
+def main():
     """Run advise-reporter to produce message."""
     init_logging()
-    _advise_justification = AdviseJustificationMessage()
 
     adviser_versions = []
 
@@ -150,16 +149,14 @@ async def main():
         adviser_version = advise_justification["adviser_version"]
 
         try:
-            await _advise_justification.publish_to_topic(
-                _advise_justification.MessageContents(
-                    message=message,
-                    count=int(count),
-                    justification_type=justification_type,
-                    adviser_version=adviser_version,
-                    component_name=COMPONENT_NAME,
-                    service_version=__service_version__,
-                )
-            )
+            producer.publish_to_topic(p, AdviseJustificationMessage(), AdviseJustificationMessage.MessageContents(
+                message=message,
+                count=int(count),
+                justification_type=justification_type,
+                adviser_version=adviser_version,
+                component_name=COMPONENT_NAME,
+                service_version=__service_version__,
+            ))
             _LOGGER.debug(
                 "Adviser justification message:\n%r\nJustification type:\n%r\nCount:\n%r\n",
                 message,
@@ -171,4 +168,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    app.main()
+    main()

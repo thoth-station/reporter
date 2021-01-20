@@ -137,7 +137,7 @@ def main():
             save_results_to_ceph(advise_justification_df=advise_justification_df, date_filter=initial_date)
 
         else:
-            _LOGGER.exception(f"No adviser documents identified on {initial_date.strftime('%d-%m-%Y')}")
+            _LOGGER.warning(f"No adviser documents identified on {initial_date.strftime('%d-%m-%Y')}")
 
     if ONLY_STORE or EVALUATION_METRICS_DAYS > 1:
         return

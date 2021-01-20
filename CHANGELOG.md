@@ -324,3 +324,10 @@ all the things that you see...
 * :pushpin: Automatic update of dependency hypothesis from 5.37.3 to 5.39.0 (#142)
 * :pushpin: Automatic update of dependency hypothesis from 5.37.3 to 5.39.0 (#141)
 * :pushpin: Automatic update of dependency hypothesis from 5.37.3 to 5.39.0 (#140)
+
+## Release 0.5.1 (2021-01-20T07:37:38)
+### Features
+* Change log to warning (#155)
+* :arrow_up: Automatic update of dependencies by kebechet. (#153)
+* update to latest messaging (#151)
+* :arrow_up: Automatic update of dependencies by kebechet. (#150)

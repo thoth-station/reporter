@@ -32,21 +32,50 @@ from thoth.advise_reporter.advise_reporter import save_results_to_ceph
 from thoth.advise_reporter import __service_version__
 from thoth.common import init_logging
 from thoth.python import Source
+from thoth.storages import GraphDatabase
+
+from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 _LOGGER.info("Thoth advise reporter producer v%s", __service_version__)
 
+prometheus_registry = CollectorRegistry()
+
+_THOTH_DEPLOYMENT_NAME = os.getenv("THOTH_DEPLOYMENT_NAME")
+_THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
+
 p = producer.create_producer()
 
 ADVISER_VERSION = os.getenv("THOTH_ADVISER_VERSION", None)
+
 _LOGGER.info(f"THOTH_ADVISER_VERSION set to {ADVISER_VERSION}.")
+
 NUMBER_RELEASES = int(os.getenv("THOTH_NUMBER_RELEASES", 2))
 ONLY_STORE = bool(int(os.getenv("THOTH_ADVISE_REPORTER_ONLY_STORE", 0)))
 COMPONENT_NAME = "advise_reporter"
+
 EVALUATION_METRICS_DAYS = int(os.getenv("THOTH_EVALUATION_METRICS_NUMBER_DAYS", 1))
 LIMIT_RESULTS = bool(int(os.getenv("THOTH_LIMIT_RESULTS", 0)))
 MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
+
 _LOGGER.info(f"THOTH_EVALUATION_METRICS_NUMBER_DAYS set to {EVALUATION_METRICS_DAYS}.")
+
+thoth_adviser_reporter_info = Gauge(
+    "advise_reporter_info", "Thoth Adviser Reporter information", ["version"], registry=prometheus_registry,
+)
+thoth_adviser_reporter_info.labels(__service_version__).inc()
+
+if _THOTH_METRICS_PUSHGATEWAY_URL:
+    _METRIC_DATABASE_SCHEMA_SCRIPT = Gauge(
+        "thoth_database_schema_revision_script",
+        "Thoth database schema revision from script",
+        ["component", "revision", "env"],
+        registry=prometheus_registry,
+    )
+
+    _METRIC_DATABASE_SCHEMA_SCRIPT.labels(
+        "advise-reporter", GraphDatabase().get_script_alembic_version_head(), _THOTH_DEPLOYMENT_NAME
+    ).inc()
 
 
 def main():
@@ -139,6 +168,17 @@ def main():
         else:
             _LOGGER.warning(f"No adviser documents identified on {initial_date.strftime('%d-%m-%Y')}")
 
+    if _THOTH_METRICS_PUSHGATEWAY_URL:
+        try:
+            _LOGGER.debug(
+                "Submitting metrics to Prometheus pushgateway %r", _THOTH_METRICS_PUSHGATEWAY_URL,
+            )
+            push_to_gateway(
+                _THOTH_METRICS_PUSHGATEWAY_URL, job="advise-reporter", registry=prometheus_registry,
+            )
+        except Exception as exc:
+            _LOGGER.exception("An error occurred pushing the metrics: %s", str(exc))
+
     if ONLY_STORE or EVALUATION_METRICS_DAYS > 1:
         return
 
@@ -149,14 +189,18 @@ def main():
         adviser_version = advise_justification["adviser_version"]
 
         try:
-            producer.publish_to_topic(p, AdviseJustificationMessage(), AdviseJustificationMessage.MessageContents(
-                message=message,
-                count=int(count),
-                justification_type=justification_type,
-                adviser_version=adviser_version,
-                component_name=COMPONENT_NAME,
-                service_version=__service_version__,
-            ))
+            producer.publish_to_topic(
+                p,
+                AdviseJustificationMessage(),
+                AdviseJustificationMessage.MessageContents(
+                    message=message,
+                    count=int(count),
+                    justification_type=justification_type,
+                    adviser_version=adviser_version,
+                    component_name=COMPONENT_NAME,
+                    service_version=__service_version__,
+                ),
+            )
             _LOGGER.debug(
                 "Adviser justification message:\n%r\nJustification type:\n%r\nCount:\n%r\n",
                 message,

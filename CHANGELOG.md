@@ -331,3 +331,7 @@ all the things that you see...
 * :arrow_up: Automatic update of dependencies by kebechet. (#153)
 * update to latest messaging (#151)
 * :arrow_up: Automatic update of dependencies by kebechet. (#150)
+
+## Release 0.6.0 (2021-02-02T09:27:19)
+### Features
+* Add metrics database (#158)

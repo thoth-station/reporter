@@ -74,7 +74,7 @@ if _THOTH_METRICS_PUSHGATEWAY_URL:
     )
 
     _METRIC_DATABASE_SCHEMA_SCRIPT.labels(
-        "graph-sync", GraphDatabase().get_script_alembic_version_head(), _THOTH_DEPLOYMENT_NAME
+        "advise-reporter", GraphDatabase().get_script_alembic_version_head(), _THOTH_DEPLOYMENT_NAME
     ).inc()
 
 

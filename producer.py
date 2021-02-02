@@ -34,7 +34,7 @@ from thoth.common import init_logging
 from thoth.python import Source
 from thoth.storages import GraphDatabase
 
-from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
+from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 _LOGGER.info("Thoth advise reporter producer v%s", __service_version__)
@@ -61,10 +61,7 @@ MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
 _LOGGER.info(f"THOTH_EVALUATION_METRICS_NUMBER_DAYS set to {EVALUATION_METRICS_DAYS}.")
 
 thoth_adviser_reporter_info = Gauge(
-    "advise_reporter_info",
-    "Thoth Adviser Reporter information",
-    ["version"],
-    registry=prometheus_registry,
+    "advise_reporter_info", "Thoth Adviser Reporter information", ["version"], registry=prometheus_registry,
 )
 thoth_adviser_reporter_info.labels(__service_version__).inc()
 
@@ -77,9 +74,7 @@ if _THOTH_METRICS_PUSHGATEWAY_URL:
     )
 
     _METRIC_DATABASE_SCHEMA_SCRIPT.labels(
-        "graph-sync",
-        GraphDatabase().get_script_alembic_version_head(),
-        _THOTH_DEPLOYMENT_NAME
+        "graph-sync", GraphDatabase().get_script_alembic_version_head(), _THOTH_DEPLOYMENT_NAME
     ).inc()
 
 
@@ -176,13 +171,10 @@ def main():
     if _THOTH_METRICS_PUSHGATEWAY_URL:
         try:
             _LOGGER.debug(
-                "Submitting metrics to Prometheus pushgateway %r",
-                _THOTH_METRICS_PUSHGATEWAY_URL,
+                "Submitting metrics to Prometheus pushgateway %r", _THOTH_METRICS_PUSHGATEWAY_URL,
             )
             push_to_gateway(
-                _THOTH_METRICS_PUSHGATEWAY_URL,
-                job="advise-reporter",
-                registry=prometheus_registry,
+                _THOTH_METRICS_PUSHGATEWAY_URL, job="advise-reporter", registry=prometheus_registry,
             )
         except Exception as exc:
             _LOGGER.exception("An error occurred pushing the metrics: %s", str(exc))
@@ -197,14 +189,18 @@ def main():
         adviser_version = advise_justification["adviser_version"]
 
         try:
-            producer.publish_to_topic(p, AdviseJustificationMessage(), AdviseJustificationMessage.MessageContents(
-                message=message,
-                count=int(count),
-                justification_type=justification_type,
-                adviser_version=adviser_version,
-                component_name=COMPONENT_NAME,
-                service_version=__service_version__,
-            ))
+            producer.publish_to_topic(
+                p,
+                AdviseJustificationMessage(),
+                AdviseJustificationMessage.MessageContents(
+                    message=message,
+                    count=int(count),
+                    justification_type=justification_type,
+                    adviser_version=adviser_version,
+                    component_name=COMPONENT_NAME,
+                    service_version=__service_version__,
+                ),
+            )
             _LOGGER.debug(
                 "Adviser justification message:\n%r\nJustification type:\n%r\nCount:\n%r\n",
                 message,

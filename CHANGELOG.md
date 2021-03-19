@@ -335,3 +335,11 @@ all the things that you see...
 ## Release 0.6.0 (2021-02-02T09:27:19)
 ### Features
 * Add metrics database (#158)
+
+## Release 0.6.1 (2021-03-19T13:31:00)
+### Features
+* configure ci/cd prow on the app and updated pre-commit
+* :arrow_up: Automatic update of dependencies by Kebechet
+* include thoth issue template for kebechet updates
+### Other
+* remove deprecated ci files

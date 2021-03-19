@@ -61,7 +61,10 @@ MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
 _LOGGER.info(f"THOTH_EVALUATION_METRICS_NUMBER_DAYS set to {EVALUATION_METRICS_DAYS}.")
 
 thoth_adviser_reporter_info = Gauge(
-    "advise_reporter_info", "Thoth Adviser Reporter information", ["version"], registry=prometheus_registry,
+    "advise_reporter_info",
+    "Thoth Adviser Reporter information",
+    ["version"],
+    registry=prometheus_registry,
 )
 thoth_adviser_reporter_info.labels(__service_version__).inc()
 
@@ -171,10 +174,13 @@ def main():
     if _THOTH_METRICS_PUSHGATEWAY_URL:
         try:
             _LOGGER.debug(
-                "Submitting metrics to Prometheus pushgateway %r", _THOTH_METRICS_PUSHGATEWAY_URL,
+                "Submitting metrics to Prometheus pushgateway %r",
+                _THOTH_METRICS_PUSHGATEWAY_URL,
             )
             push_to_gateway(
-                _THOTH_METRICS_PUSHGATEWAY_URL, job="advise-reporter", registry=prometheus_registry,
+                _THOTH_METRICS_PUSHGATEWAY_URL,
+                job="advise-reporter",
+                registry=prometheus_registry,
             )
         except Exception as exc:
             _LOGGER.exception("An error occurred pushing the metrics: %s", str(exc))

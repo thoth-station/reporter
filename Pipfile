@@ -8,7 +8,7 @@ prometheus-client = "*"
 thoth-report-processing = "*"
 thoth-common = "*"
 thoth-python = "*"
-thoth-messaging = "*"
+thoth-messaging = "<=0.13"
 
 [dev-packages]
 pytest = "*"

@@ -23,7 +23,6 @@ import datetime
 
 from typing import List
 
-from thoth.storages import CephStore
 from io import StringIO
 import pandas as pd
 
@@ -86,6 +85,7 @@ def _store_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: d
 
     _LOGGER.info(f"Successfully stored in Public bucket on Ceph...{ceph_path}")
 
+
 def retrieve_thoth_sli_from_ceph(ceph_path: str, columns: List[str]) -> pd.DataFrame:
     """Retrieve Thoth SLI from Ceph."""
     ceph_sli = Adviser.connect_to_ceph(
@@ -94,7 +94,7 @@ def retrieve_thoth_sli_from_ceph(ceph_path: str, columns: List[str]) -> pd.DataF
     _LOGGER.info(f"Retrieving... \n{ceph_path}")
 
     try:
-        retrieved_data = ceph_sli.retrieve_blob(object_key=ceph_path).decode('utf-8')
+        retrieved_data = ceph_sli.retrieve_blob(object_key=ceph_path).decode("utf-8")
         data = StringIO(retrieved_data)
         last_week_data = pd.read_csv(data, names=columns)
 
@@ -102,15 +102,11 @@ def retrieve_thoth_sli_from_ceph(ceph_path: str, columns: List[str]) -> pd.DataF
         _LOGGER.warning(f"No file could be retrieved from Ceph: {e}")
         last_week_data = pd.DataFrame(columns=columns)
 
-
     return last_week_data
 
 
-def parse_justification(
-    justification: str
-) -> str:
+def parse_justification(justification: str) -> str:
     """Parse adviser justification."""
     if "https://thoth-station.ninja/j/" not in justification:
         return justification
     return "https://thoth-station.ninja/j/" + justification.split("https://thoth-station.ninja/j/")[1]
-

@@ -35,7 +35,7 @@ def _retrieve_processed_justifications_dataframe(
     date_: datetime.datetime,
     dataframes: Dict[str, pd.DataFrame],
 ) -> List[Dict[str, Any]]:
-    adviser_justifications_dataframe = dataframes['justifications']
+    adviser_justifications_dataframe = dataframes["justifications"]
 
     advise_justifications: List[Dict[str, Any]] = []
 
@@ -68,62 +68,61 @@ def _retrieve_processed_justifications_dataframe(
                     )
 
         if not advise_justifications:
-            _LOGGER.info(
-                f"No adviser justifications found in date: {date_.strftime('%Y-%m-%d')}"
-            )
+            _LOGGER.info(f"No adviser justifications found in date: {date_.strftime('%Y-%m-%d')}")
 
     else:
         _LOGGER.warning(f"No adviser justifications identified on {date_.strftime('%d-%m-%Y')}")
 
     return advise_justifications
 
+
 def _post_process_total_justifications(
-    start_date: datetime.date,
-    result_class: str,
-    justification_tdf: pd.DataFrame
+    start_date: datetime.date, result_class: str, justification_tdf: pd.DataFrame
 ) -> List[Dict[str, Any]]:
     total_advise_justifications = []
 
     file_path = f"{result_class}/{result_class}-{start_date - datetime.timedelta(days=1)}.csv"
-    stored_justifications_df = retrieve_thoth_sli_from_ceph(file_path=file_path, columns=["adviser_version", "message", "count"])
+    stored_justifications_df = retrieve_thoth_sli_from_ceph(
+        file_path=file_path, columns=["adviser_version", "message", "count"]
+    )
 
     for message in justification_tdf["message"].unique():
         for adviser_version in justification_tdf["adviser_version"].unique():
             subset_df = justification_tdf[
-                        (justification_tdf["message"] == message)
-                        & (justification_tdf["adviser_version"] == adviser_version)
+                (justification_tdf["message"] == message) & (justification_tdf["adviser_version"] == adviser_version)
             ]
             counts = subset_df["count"].sum()
 
             additions = 0
             if not stored_justifications_df.empty:
                 additions = stored_justifications_df[
-                            (stored_justifications_df["message"] == message)
-                            & (stored_justifications_df["adviser_version"] == adviser_version)
+                    (stored_justifications_df["message"] == message)
+                    & (stored_justifications_df["adviser_version"] == adviser_version)
                 ]["count"]
 
-            if counts: 
+            if counts:
                 total_advise_justifications.append(
                     {
                         "adviser_version": adviser_version,
                         "message": message,
-                        "count":counts + additions,
+                        "count": counts + additions,
                     }
                 )
 
     return total_advise_justifications
 
+
 def _retrieve_processed_integration_info_dataframe(
     date_: datetime.datetime,
     dataframes: Dict[str, pd.DataFrame],
 ) -> List[Dict[str, Any]]:
-    adviser_integration_info_dataframe = dataframes['integration_info']
+    adviser_integration_info_dataframe = dataframes["integration_info"]
 
     integration_info: List[Dict[str, Any]] = []
 
     if not adviser_integration_info_dataframe.empty:
 
-        for advise_integration in ThothAdviserIntegrationEnum._member_names_:
+        for advise_integration in ThothAdviserIntegrationEnum._member_names_:  # type: ignore
             subset_df = adviser_integration_info_dataframe[
                 (adviser_integration_info_dataframe["source_type"] == advise_integration)
                 & (adviser_integration_info_dataframe["date_"] == str(date_.strftime("%Y-%m-%d")))
@@ -143,19 +142,16 @@ def _retrieve_processed_integration_info_dataframe(
             )
 
         if not integration_info:
-            _LOGGER.info(
-                f"No adviser integration info found in date: {date_.strftime('%Y-%m-%d')}"
-            )
+            _LOGGER.info(f"No adviser integration info found in date: {date_.strftime('%Y-%m-%d')}")
 
     else:
         _LOGGER.warning(f"No adviser integration info identified on {date_.strftime('%d-%m-%Y')}")
 
     return integration_info
 
+
 def _post_process_total_integration_info(
-    start_date: datetime.date,
-    result_class: str,
-    user_info_tdf: pd.DataFrame
+    start_date: datetime.date, result_class: str, user_info_tdf: pd.DataFrame
 ) -> List[Dict[str, Any]]:
 
     total_advise_integration_info = []

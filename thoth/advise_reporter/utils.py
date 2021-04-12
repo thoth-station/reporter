@@ -15,12 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""This is run to retrieve adviser justifications."""
+"""Utils for advise reporter."""
 
 import logging
 import os
 import datetime
 
+from typing import List
+
+from thoth.storages import CephStore
+from io import StringIO
 import pandas as pd
 
 from thoth.report_processing.components import Adviser
@@ -32,20 +36,18 @@ ENVIRONMENT = os.environ["THOTH_DEPLOYMENT_NAME"].split("-")[1]
 CEPH_BUCKET_PREFIX = os.environ["THOTH_CEPH_BUCKET_PREFIX"]
 PUBLIC_CEPH_BUCKET = os.environ["THOTH_PUBLIC_CEPH_BUCKET"]
 
-IS_STORING = bool(int(os.getenv("THOTH_IS_STORING", 1)))
 
-
-def save_results_to_ceph(advise_justification_df: pd.DataFrame, date_filter: datetime.datetime):
+def save_results_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: datetime.datetime):
     """Save results on Ceph."""
-    if advise_justification_df.empty:
-        return advise_justification_df
+    if processed_df.empty:
+        return processed_df
 
-    if IS_STORING:
-        _LOGGER.info("Storing to Ceph...")
-        _store_to_ceph(advise_justification_df=advise_justification_df, date_filter=date_filter)
+    _LOGGER.info("Storing to Ceph...")
+
+    return _store_to_ceph(processed_df=processed_df, result_class=result_class, date_filter=date_filter)
 
 
-def _store_to_ceph(advise_justification_df: pd.DataFrame, date_filter: datetime.datetime) -> None:
+def _store_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: datetime.datetime) -> None:
     """Store results to Ceph for visualization."""
     ceph_sli = Adviser.connect_to_ceph(
         ceph_bucket_prefix=CEPH_BUCKET_PREFIX, processed_data_name="thoth-sli-metrics", environment=ENVIRONMENT
@@ -58,12 +60,11 @@ def _store_to_ceph(advise_justification_df: pd.DataFrame, date_filter: datetime.
         bucket=PUBLIC_CEPH_BUCKET,
     )
 
-    result_class = "adviser-justifications"
-    ceph_path = f"{result_class}/{result_class}-{date_filter.strftime('%Y-%m-%d')}.csv"
+    ceph_path = f"{result_class}/{result_class}-{date_filter}.csv"
 
-    _LOGGER.info(f"Results to be stored on Ceph...{advise_justification_df}")
+    _LOGGER.info(f"Results to be stored on Ceph...{processed_df}")
 
-    csv: str = advise_justification_df.to_csv(header=False, sep="`", index=False)
+    csv: str = processed_df.to_csv(header=False, sep="`", index=False)
 
     try:
         Adviser.store_csv_from_dataframe(
@@ -84,3 +85,32 @@ def _store_to_ceph(advise_justification_df: pd.DataFrame, date_filter: datetime.
         pass
 
     _LOGGER.info(f"Successfully stored in Public bucket on Ceph...{ceph_path}")
+
+def retrieve_thoth_sli_from_ceph(ceph_path: str, columns: List[str]) -> pd.DataFrame:
+    """Retrieve Thoth SLI from Ceph."""
+    ceph_sli = Adviser.connect_to_ceph(
+        ceph_bucket_prefix=CEPH_BUCKET_PREFIX, processed_data_name="thoth-sli-metrics", environment=ENVIRONMENT
+    )
+    _LOGGER.info(f"Retrieving... \n{ceph_path}")
+
+    try:
+        retrieved_data = ceph_sli.retrieve_blob(object_key=ceph_path).decode('utf-8')
+        data = StringIO(retrieved_data)
+        last_week_data = pd.read_csv(data, names=columns)
+
+    except Exception as e:
+        _LOGGER.warning(f"No file could be retrieved from Ceph: {e}")
+        last_week_data = pd.DataFrame(columns=columns)
+
+
+    return last_week_data
+
+
+def parse_justification(
+    justification: str
+) -> str:
+    """Parse adviser justification."""
+    if "https://thoth-station.ninja/j/" not in justification:
+        return justification
+    return "https://thoth-station.ninja/j/" + justification.split("https://thoth-station.ninja/j/")[1]
+

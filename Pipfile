@@ -7,8 +7,7 @@ verify_ssl = true
 prometheus-client = "*"
 thoth-report-processing = "*"
 thoth-common = "*"
-thoth-python = "*"
-thoth-messaging = "<=0.13"
+thoth-messaging = "*"
 
 [dev-packages]
 pytest = "*"
@@ -18,7 +17,7 @@ hypothesis-auto = "*"
 hypothesis = "*"
 pytest-mypy = "*"
 mypy = "*"
-pre-commit = "==2.0.1"
+pre-commit = "*"
 
 [requires]
 python_version = "3.8"

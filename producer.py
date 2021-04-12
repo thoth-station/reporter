@@ -25,13 +25,19 @@ import pandas as pd
 
 from typing import Dict, Any, List
 
-from thoth.messaging import AdviseJustificationMessage
 import thoth.messaging.producer as producer
+from thoth.messaging import AdviseJustificationMessage
+
 from thoth.report_processing.components.adviser import Adviser
-from thoth.advise_reporter.advise_reporter import save_results_to_ceph
+from thoth.advise_reporter.utils import save_results_to_ceph
+from thoth.advise_reporter.processed_results import _retrieve_processed_justifications_dataframe
+from thoth.advise_reporter.processed_results import _post_process_total_justifications
+from thoth.advise_reporter.processed_results import _retrieve_processed_integration_info_dataframe
+from thoth.advise_reporter.processed_results import _post_process_total_integration_info
+
 from thoth.advise_reporter import __service_version__
 from thoth.common import init_logging
-from thoth.python import Source
+
 from thoth.storages import GraphDatabase
 
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
@@ -39,26 +45,26 @@ from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 _LOGGER.info("Thoth advise reporter producer v%s", __service_version__)
 
-prometheus_registry = CollectorRegistry()
+COMPONENT_NAME = "advise_reporter"
 
 _THOTH_DEPLOYMENT_NAME = os.getenv("THOTH_DEPLOYMENT_NAME")
+
+_SEND_MESSAGES = bool(int(os.getenv("THOTH_ADVISE_REPORTER_SEND_KAFKA_MESSAGES", 0)))
+_STORE_ON_CEPH = bool(int(os.getenv("THOTH_ADVISE_REPORTER_STORE_ON_CEPH", 1)))
+_SEND_METRICS = bool(int(os.getenv("THOTH_ADVISE_REPORTER_SEND_METRICS", 1)))
+
+if _SEND_MESSAGES:
+    p = producer.create_producer()
+
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
-
-p = producer.create_producer()
-
-ADVISER_VERSION = os.getenv("THOTH_ADVISER_VERSION", None)
-
-_LOGGER.info(f"THOTH_ADVISER_VERSION set to {ADVISER_VERSION}.")
-
-NUMBER_RELEASES = int(os.getenv("THOTH_NUMBER_RELEASES", 2))
-ONLY_STORE = bool(int(os.getenv("THOTH_ADVISE_REPORTER_ONLY_STORE", 0)))
-COMPONENT_NAME = "advise_reporter"
 
 EVALUATION_METRICS_DAYS = int(os.getenv("THOTH_EVALUATION_METRICS_NUMBER_DAYS", 1))
 LIMIT_RESULTS = bool(int(os.getenv("THOTH_LIMIT_RESULTS", 0)))
 MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
 
 _LOGGER.info(f"THOTH_EVALUATION_METRICS_NUMBER_DAYS set to {EVALUATION_METRICS_DAYS}.")
+
+prometheus_registry = CollectorRegistry()
 
 thoth_adviser_reporter_info = Gauge(
     "advise_reporter_info",
@@ -85,93 +91,63 @@ def main():
     """Run advise-reporter to produce message."""
     init_logging()
 
-    adviser_versions = []
-
-    adviser_versions.append(ADVISER_VERSION)
-
-    number_releases = 1
-
-    if NUMBER_RELEASES:
-        number_releases = NUMBER_RELEASES
-
-    if not ADVISER_VERSION:
-        package_name = "thoth-adviser"
-        index_url = "https://pypi.org/simple"
-        source = Source(index_url)
-        # Consider only last two releases by default
-        adviser_versions = [str(v) for v in source.get_sorted_package_versions(package_name)][:number_releases]
-
     total_justifications: List[Dict[str, Any]] = []
+    total_integration_info: List[Dict[str, Any]] = []
+
+    total_processed_daframes: List[pd.DataFrame] = {}
 
     for i in range(0, EVALUATION_METRICS_DAYS):
-        initial_date = datetime.datetime.utcnow() - datetime.timedelta(days=i)
-        _LOGGER.info(f"Date considered: {initial_date.strftime('%d-%m-%Y')}")
+        start_date = datetime.date.today() - datetime.timedelta(days=i)
+        end_date = datetime.date.today()
+        _LOGGER.info(f"Date considered: {start_date}")
 
-        adviser_files = Adviser.aggregate_adviser_results(
-            initial_date=initial_date.strftime("%d-%m-%Y"), limit_results=LIMIT_RESULTS, max_ids=MAX_IDS
+        daily_processed_daframes: List[pd.DataFrame] = {}
+
+        adviser_files = Adviser.aggregate_adviser_results(start_date=start_date)
+
+        dataframes = Adviser.create_adviser_dataframes(adviser_files=adviser_files)
+
+        daily_justifications = _retrieve_processed_justifications_dataframe(date_=end_date, dataframes=dataframes)
+        daily_processed_daframes["adviser-justifications"] = pd.DataFrame(daily_justifications)
+
+        daily_integration_info = _retrieve_processed_integration_info_dataframe(date_=end_date, dataframes=dataframes)
+        daily_processed_daframes["adviser-integration-info"] = pd.DataFrame(daily_integration_info)
+
+        if _STORE_ON_CEPH:
+            for result_class, processed_df in daily_processed_daframes.items():
+                save_results_to_ceph(processed_df=processed_df, result_class=result_class, date_filter=end_date)
+
+        total_justifications += daily_justifications
+        total_integration_info += daily_integration_info
+
+    if total_justifications:
+
+        result_class = "total-adviser-justifications"
+
+        justification_tdf = pd.DataFrame(total_justifications)
+
+        total_advise_justifications = _post_process_total_justifications(
+            start_date=start_date, result_class=result_class, justification_tdf=justification_tdf
         )
 
-        justifications_collected: List[Dict[str, Any]] = []
+        total_processed_daframes[result_class] = pd.DataFrame(total_advise_justifications)
 
-        for adviser_version in adviser_versions:
-            justifications_collected = Adviser.create_adviser_dataframe(
-                adviser_version=adviser_version,
-                adviser_files=adviser_files,
-                justifications_collected=justifications_collected,
-            )
+    if total_integration_info:
 
-        adviser_dataframe = Adviser._create_adviser_dataframe(justifications_collected)
+        result_class = "total-adviser-users-info"
+        user_info_tdf = pd.DataFrame(total_integration_info)
 
-        if not adviser_dataframe.empty:
+        total_advise_integration_info = _post_process_total_integration_info(
+            start_date=start_date, result_class=result_class, user_info_tdf=user_info_tdf
+        )
 
-            adviser_dataframe["date_"] = [
-                pd.to_datetime(str(v_date)).strftime("%Y-%m-%d") for v_date in adviser_dataframe["date"].values
-            ]
+        total_processed_daframes[result_class] = pd.DataFrame(total_advise_integration_info)
 
-            advise_justifications: List[Dict[str, Any]] = []
+    if _STORE_ON_CEPH:
+        for result_class, processed_df in total_processed_daframes.items():
+            save_results_to_ceph(processed_df=processed_df, date_filter=start_date)
 
-            for adviser_version in adviser_versions:
-                for unique_message in adviser_dataframe["message"].unique():
-                    subset_df = adviser_dataframe[
-                        (adviser_dataframe["message"] == unique_message)
-                        & (adviser_dataframe["date_"] == str(initial_date.strftime("%Y-%m-%d")))
-                        & (adviser_dataframe["analyzer_version"] == adviser_version)
-                    ]
-
-                    if not subset_df.empty:
-                        counts = subset_df.shape[0]
-
-                        types = [t for t in subset_df["type"].unique()]
-
-                        if len(types) > 1:
-                            _LOGGER.warning("type assigned to same message is different %s", types)
-
-                        advise_justifications.append(
-                            {
-                                "date": initial_date.strftime("%Y-%m-%d"),
-                                "message": unique_message,
-                                "count": counts,
-                                "type": types[0],
-                                "adviser_version": adviser_version,
-                            }
-                        )
-
-            if not advise_justifications:
-                _LOGGER.info(
-                    f"No adviser justifications found in date: {initial_date.strftime('%Y-%m-%d')}"
-                    f" for adviser versions: {adviser_versions}"
-                )
-
-            total_justifications += advise_justifications
-
-            advise_justification_df = pd.DataFrame(advise_justifications)
-
-            save_results_to_ceph(advise_justification_df=advise_justification_df, date_filter=initial_date)
-
-        else:
-            _LOGGER.warning(f"No adviser documents identified on {initial_date.strftime('%d-%m-%Y')}")
-
-    if _THOTH_METRICS_PUSHGATEWAY_URL:
+    if _SEND_METRICS:
         try:
             _LOGGER.debug(
                 "Submitting metrics to Prometheus pushgateway %r",
@@ -185,7 +161,7 @@ def main():
         except Exception as exc:
             _LOGGER.exception("An error occurred pushing the metrics: %s", str(exc))
 
-    if ONLY_STORE or EVALUATION_METRICS_DAYS > 1:
+    if not _SEND_MESSAGES or EVALUATION_METRICS_DAYS > 1:
         return
 
     for advise_justification in total_justifications:

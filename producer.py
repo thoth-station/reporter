@@ -84,8 +84,10 @@ if _THOTH_METRICS_PUSHGATEWAY_URL:
         "advise-reporter", GraphDatabase().get_script_alembic_version_head(), _THOTH_DEPLOYMENT_NAME
     ).inc()
 
-START_DATE = os.getenv("ADVISE_REPORTER_START_DATE", str(datetime.date.today()))
-END_DATE = os.getenv("ADVISE_REPORTER_END_DATE", str(datetime.date.today()))
+TODAY = datetime.date.today()
+
+START_DATE = os.getenv("ADVISE_REPORTER_START_DATE", str(TODAY))
+END_DATE = os.getenv("ADVISE_REPORTER_END_DATE", str(TODAY))
 
 
 def main():
@@ -112,12 +114,11 @@ def main():
     _LOGGER.info(f"Start Date considered: {start_date}")
     _LOGGER.info(f"End Date considered (excluded): {end_date}")
 
-    today = datetime.date.today()
     delta = datetime.timedelta(days=1)
 
-    if start_date == today + delta:
-        _LOGGER.warning(f"start date ({start_date}) cannot be in the future. Today is: {today}.")
-        start_date = today
+    if start_date == TODAY + delta:
+        _LOGGER.warning(f"start date ({start_date}) cannot be in the future. Today is: {TODAY}.")
+        start_date = TODAY
         _LOGGER.warning(f"new start date is: {start_date}.")
 
     if end_date < start_date:
@@ -125,10 +126,10 @@ def main():
         return 
 
     if end_date == start_date:
-        if start_date == today:
+        if start_date == TODAY:
             start_date = start_date - delta
             _LOGGER.warning(
-                f"end date ({end_date}) == start_date ({start_date}) == today ({today})."
+                f"end date ({end_date}) == start_date ({start_date}) == today ({TODAY})."
             )
             _LOGGER.warning(f"new start date is: {start_date}.")
         else:

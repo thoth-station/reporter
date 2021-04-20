@@ -123,14 +123,12 @@ def main():
 
     if end_date < start_date:
         _LOGGER.error(f"Cannot analyze adviser data: end date ({end_date}) < start_date ({start_date}).")
-        return 
+        return
 
     if end_date == start_date:
         if start_date == TODAY:
             start_date = start_date - delta
-            _LOGGER.warning(
-                f"end date ({end_date}) == start_date ({start_date}) == today ({TODAY})."
-            )
+            _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}) == today ({TODAY}).")
             _LOGGER.warning(f"new start date is: {start_date}.")
         else:
             _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}).")

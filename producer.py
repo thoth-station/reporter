@@ -26,14 +26,13 @@ import pandas as pd
 from typing import Dict, Any, List
 
 import thoth.messaging.producer as producer
-from thoth.messaging import AdviseJustificationMessage
+from thoth.messaging.advise_justification import MessageContents as AdviseJustificationContents
 
 from thoth.report_processing.components.adviser import Adviser
 from thoth.advise_reporter.utils import save_results_to_ceph
 from thoth.advise_reporter.processed_results import _retrieve_processed_justifications_dataframe
-from thoth.advise_reporter.processed_results import _post_process_total_justifications
-from thoth.advise_reporter.processed_results import _retrieve_processed_integration_info_dataframe
-from thoth.advise_reporter.processed_results import _post_process_total_integration_info
+from thoth.advise_reporter.processed_results import _retrieve_processed_statistics_dataframe
+from thoth.advise_reporter.processed_results import _retrieve_processed_inputs_info_dataframe
 
 from thoth.advise_reporter import __service_version__
 from thoth.common import init_logging
@@ -58,11 +57,8 @@ if _SEND_MESSAGES:
 
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
 
-EVALUATION_METRICS_DAYS = int(os.getenv("THOTH_EVALUATION_METRICS_NUMBER_DAYS", 1))
 LIMIT_RESULTS = bool(int(os.getenv("THOTH_LIMIT_RESULTS", 0)))
 MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
-
-_LOGGER.info(f"THOTH_EVALUATION_METRICS_NUMBER_DAYS set to {EVALUATION_METRICS_DAYS}.")
 
 prometheus_registry = CollectorRegistry()
 
@@ -86,66 +82,105 @@ if _THOTH_METRICS_PUSHGATEWAY_URL:
         "advise-reporter", GraphDatabase().get_script_alembic_version_head(), _THOTH_DEPLOYMENT_NAME
     ).inc()
 
+START_DATE = os.getenv("ADVISE_REPORTER_START_DATE", str(datetime.date.today() - datetime.timedelta(days=1)))
+END_DATE = os.getenv("ADVISE_REPORTER_END_DATE", str(datetime.date.today()))
+
 
 def main():
     """Run advise-reporter to produce message."""
     init_logging()
 
     total_justifications: List[Dict[str, Any]] = []
-    total_integration_info: List[Dict[str, Any]] = []
+    try:
+        datetime.datetime.strptime(START_DATE, "%Y-%m-%d")
+    except ValueError as err:
+        _LOGGER.error(f"ADVISE_REPORTER_START_DATE uses incorrect format: {err}")
 
-    total_processed_daframes: List[pd.DataFrame] = {}
+    s_date = START_DATE.split("-")
+    start_date = datetime.date(year=int(s_date[0]), month=int(s_date[1]), day=int(s_date[2]))
 
-    for i in range(0, EVALUATION_METRICS_DAYS):
-        start_date = datetime.date.today() - datetime.timedelta(days=i)
-        end_date = datetime.date.today()
-        _LOGGER.info(f"Date considered: {start_date}")
+    try:
+        datetime.datetime.strptime(END_DATE, "%Y-%m-%d")
+    except ValueError as err:
+        _LOGGER.error(f"ADVISE_REPORTER_END_DATE uses incorrect format: {err}")
+
+    e_date = END_DATE.split("-")
+    end_date = datetime.date(year=int(e_date[0]), month=int(e_date[1]), day=int(e_date[2]))
+
+    _LOGGER.info(f"Start Date considered: {start_date}")
+    _LOGGER.info(f"End Date considered (excluded): {end_date}")
+
+    delta = datetime.timedelta(days=1)
+
+    if end_date < start_date:
+        _LOGGER.error(f"Cannot analyze adviser data: end date ({end_date}) < start_date ({start_date}).")
+
+    if end_date == start_date:
+        _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}).")
+        end_date = end_date + datetime.timedelta(days=1)
+        _LOGGER.error(f"new start date is: {end_date}.")
+
+    while start_date < end_date:
+
+        current_end_date = start_date + delta
+        _LOGGER.info(f"Analyzing data for: {start_date}")
 
         daily_processed_daframes: List[pd.DataFrame] = {}
 
-        adviser_files = Adviser.aggregate_adviser_results(start_date=start_date)
+        adviser_files = Adviser.aggregate_adviser_results(start_date=start_date, end_date=current_end_date)
 
         dataframes = Adviser.create_adviser_dataframes(adviser_files=adviser_files)
 
-        daily_justifications = _retrieve_processed_justifications_dataframe(date_=end_date, dataframes=dataframes)
-        daily_processed_daframes["adviser-justifications"] = pd.DataFrame(daily_justifications)
+        daily_justifications = _retrieve_processed_justifications_dataframe(date_=start_date, dataframes=dataframes)
+        daily_processed_daframes["adviser_justifications"] = pd.DataFrame(daily_justifications)
 
-        daily_integration_info = _retrieve_processed_integration_info_dataframe(date_=end_date, dataframes=dataframes)
-        daily_processed_daframes["adviser-integration-info"] = pd.DataFrame(daily_integration_info)
+        _LOGGER.info(
+            "Adviser justifications:"
+            f'\n{daily_processed_daframes["adviser_justifications"].to_csv(header=False, sep="`", index=False)}'
+        )
+
+        daily_statistics = _retrieve_processed_statistics_dataframe(date_=start_date, dataframes=dataframes)
+        daily_processed_daframes["adviser_statistics"] = pd.DataFrame(daily_statistics)
+
+        _LOGGER.info(
+            "Adviser statistics success rate:"
+            f'\n{daily_processed_daframes["adviser_statistics"].to_csv(header=False, sep="`", index=False)}'
+        )
+
+        daily_inputs_info = _retrieve_processed_inputs_info_dataframe(date_=start_date, dataframes=dataframes)
+        daily_processed_daframes["adviser_integration_info"] = pd.DataFrame(daily_inputs_info["integration_info"])
+        daily_processed_daframes["adviser_recommendation_info"] = pd.DataFrame(daily_inputs_info["recommendation_info"])
+        daily_processed_daframes["adviser_solver_info"] = pd.DataFrame(daily_inputs_info["solver_info"])
+        daily_processed_daframes["adviser_base_image_info"] = pd.DataFrame(daily_inputs_info["base_image_info"])
+        daily_processed_daframes["adviser_hardware_info"] = pd.DataFrame(daily_inputs_info["hardware_info"])
+
+        _LOGGER.info(
+            "Adviser integration info stats:"
+            f'\n{daily_processed_daframes["adviser_integration_info"].to_csv(header=False, sep="`", index=False)}'
+        )
+        _LOGGER.info(
+            "Adviser recomendation info stats:"
+            f'\n{daily_processed_daframes["adviser_recommendation_info"].to_csv(header=False, sep="`", index=False)}'
+        )
+        _LOGGER.info(
+            "Adviser solver info stats:"
+            f'\n{daily_processed_daframes["adviser_solver_info"].to_csv(header=False, sep="`", index=False)}'
+        )
+        _LOGGER.info(
+            "Adviser base image info stats:"
+            f'\n{daily_processed_daframes["adviser_base_image_info"].to_csv(header=False, sep="`", index=False)}'
+        )
+        _LOGGER.info(
+            "Adviser hardware info stats:"
+            f'\n{daily_processed_daframes["adviser_hardware_info"].to_csv(header=False, sep="`", index=False)}'
+        )
 
         if _STORE_ON_CEPH:
             for result_class, processed_df in daily_processed_daframes.items():
-                save_results_to_ceph(processed_df=processed_df, result_class=result_class, date_filter=end_date)
+                save_results_to_ceph(processed_df=processed_df, result_class=result_class, date_filter=start_date)
 
         total_justifications += daily_justifications
-        total_integration_info += daily_integration_info
-
-    if total_justifications:
-
-        result_class = "total-adviser-justifications"
-
-        justification_tdf = pd.DataFrame(total_justifications)
-
-        total_advise_justifications = _post_process_total_justifications(
-            start_date=start_date, result_class=result_class, justification_tdf=justification_tdf
-        )
-
-        total_processed_daframes[result_class] = pd.DataFrame(total_advise_justifications)
-
-    if total_integration_info:
-
-        result_class = "total-adviser-users-info"
-        user_info_tdf = pd.DataFrame(total_integration_info)
-
-        total_advise_integration_info = _post_process_total_integration_info(
-            start_date=start_date, result_class=result_class, user_info_tdf=user_info_tdf
-        )
-
-        total_processed_daframes[result_class] = pd.DataFrame(total_advise_integration_info)
-
-    if _STORE_ON_CEPH:
-        for result_class, processed_df in total_processed_daframes.items():
-            save_results_to_ceph(processed_df=processed_df, date_filter=start_date)
+        start_date += delta
 
     if _SEND_METRICS:
         try:
@@ -161,7 +196,7 @@ def main():
         except Exception as exc:
             _LOGGER.exception("An error occurred pushing the metrics: %s", str(exc))
 
-    if not _SEND_MESSAGES or EVALUATION_METRICS_DAYS > 1:
+    if not _SEND_MESSAGES:
         return
 
     for advise_justification in total_justifications:
@@ -173,8 +208,8 @@ def main():
         try:
             producer.publish_to_topic(
                 p,
-                AdviseJustificationMessage(),
-                AdviseJustificationMessage.MessageContents(
+                AdviseJustificationContents(),
+                AdviseJustificationContents.MessageContents(
                     message=message,
                     count=int(count),
                     justification_type=justification_type,

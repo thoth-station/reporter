@@ -357,3 +357,7 @@ all the things that you see...
 * :arrow_up: Automatic update of dependencies by Kebechet (#170)
 ### Improvements
 * Add analyzed data for adviser reports inputs and statistics (#179)
+
+## Release 0.7.1 (2021-04-20T13:24:31)
+### Bug Fixes
+* fix loop exit (#183)

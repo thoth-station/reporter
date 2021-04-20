@@ -25,13 +25,18 @@ import pandas as pd
 
 from typing import Dict, Any, List
 
-from thoth.messaging import AdviseJustificationMessage
 import thoth.messaging.producer as producer
+from thoth.messaging.advise_justification import MessageContents as AdviseJustificationContents
+
 from thoth.report_processing.components.adviser import Adviser
-from thoth.advise_reporter.advise_reporter import save_results_to_ceph
+from thoth.advise_reporter.utils import save_results_to_ceph
+from thoth.advise_reporter.processed_results import retrieve_processed_justifications_dataframe
+from thoth.advise_reporter.processed_results import retrieve_processed_statistics_dataframe
+from thoth.advise_reporter.processed_results import retrieve_processed_inputs_info_dataframe
+
 from thoth.advise_reporter import __service_version__
 from thoth.common import init_logging
-from thoth.python import Source
+
 from thoth.storages import GraphDatabase
 
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
@@ -39,26 +44,25 @@ from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 _LOGGER = logging.getLogger("thoth.advise_reporter")
 _LOGGER.info("Thoth advise reporter producer v%s", __service_version__)
 
-prometheus_registry = CollectorRegistry()
-
-_THOTH_DEPLOYMENT_NAME = os.getenv("THOTH_DEPLOYMENT_NAME")
-_THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
-
-p = producer.create_producer()
-
-ADVISER_VERSION = os.getenv("THOTH_ADVISER_VERSION", None)
-
-_LOGGER.info(f"THOTH_ADVISER_VERSION set to {ADVISER_VERSION}.")
-
-NUMBER_RELEASES = int(os.getenv("THOTH_NUMBER_RELEASES", 2))
-ONLY_STORE = bool(int(os.getenv("THOTH_ADVISE_REPORTER_ONLY_STORE", 0)))
 COMPONENT_NAME = "advise_reporter"
 
-EVALUATION_METRICS_DAYS = int(os.getenv("THOTH_EVALUATION_METRICS_NUMBER_DAYS", 1))
+_THOTH_DEPLOYMENT_NAME = os.getenv("THOTH_DEPLOYMENT_NAME")
+
+_SEND_MESSAGES = bool(int(os.getenv("THOTH_ADVISE_REPORTER_SEND_KAFKA_MESSAGES", 0)))
+_STORE_ON_CEPH = bool(int(os.getenv("THOTH_ADVISE_REPORTER_STORE_ON_CEPH", 1)))
+_STORE_ON_PUBLIC_CEPH = bool(int(os.getenv("THOTH_ADVISE_REPORTER_STORE_ON_PUBLIC_CEPH", 0)))
+
+_SEND_METRICS = bool(int(os.getenv("THOTH_ADVISE_REPORTER_SEND_METRICS", 1)))
+
+if _SEND_MESSAGES:
+    p = producer.create_producer()
+
+_THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
+
 LIMIT_RESULTS = bool(int(os.getenv("THOTH_LIMIT_RESULTS", 0)))
 MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
 
-_LOGGER.info(f"THOTH_EVALUATION_METRICS_NUMBER_DAYS set to {EVALUATION_METRICS_DAYS}.")
+prometheus_registry = CollectorRegistry()
 
 thoth_adviser_reporter_info = Gauge(
     "advise_reporter_info",
@@ -80,98 +84,127 @@ if _THOTH_METRICS_PUSHGATEWAY_URL:
         "advise-reporter", GraphDatabase().get_script_alembic_version_head(), _THOTH_DEPLOYMENT_NAME
     ).inc()
 
+START_DATE = os.getenv("ADVISE_REPORTER_START_DATE", str(datetime.date.today() - datetime.timedelta(days=1)))
+END_DATE = os.getenv("ADVISE_REPORTER_END_DATE", str(datetime.date.today()))
+
 
 def main():
     """Run advise-reporter to produce message."""
     init_logging()
 
-    adviser_versions = []
-
-    adviser_versions.append(ADVISER_VERSION)
-
-    number_releases = 1
-
-    if NUMBER_RELEASES:
-        number_releases = NUMBER_RELEASES
-
-    if not ADVISER_VERSION:
-        package_name = "thoth-adviser"
-        index_url = "https://pypi.org/simple"
-        source = Source(index_url)
-        # Consider only last two releases by default
-        adviser_versions = [str(v) for v in source.get_sorted_package_versions(package_name)][:number_releases]
-
     total_justifications: List[Dict[str, Any]] = []
+    try:
+        datetime.datetime.strptime(START_DATE, "%Y-%m-%d")
+    except ValueError as err:
+        _LOGGER.error(f"ADVISE_REPORTER_START_DATE uses incorrect format: {err}")
 
-    for i in range(0, EVALUATION_METRICS_DAYS):
-        initial_date = datetime.datetime.utcnow() - datetime.timedelta(days=i)
-        _LOGGER.info(f"Date considered: {initial_date.strftime('%d-%m-%Y')}")
+    s_date = START_DATE.split("-")
+    start_date = datetime.date(year=int(s_date[0]), month=int(s_date[1]), day=int(s_date[2]))
 
-        adviser_files = Adviser.aggregate_adviser_results(
-            initial_date=initial_date.strftime("%d-%m-%Y"), limit_results=LIMIT_RESULTS, max_ids=MAX_IDS
-        )
+    try:
+        datetime.datetime.strptime(END_DATE, "%Y-%m-%d")
+    except ValueError as err:
+        _LOGGER.error(f"ADVISE_REPORTER_END_DATE uses incorrect format: {err}")
 
-        justifications_collected: List[Dict[str, Any]] = []
+    e_date = END_DATE.split("-")
+    end_date = datetime.date(year=int(e_date[0]), month=int(e_date[1]), day=int(e_date[2]))
 
-        for adviser_version in adviser_versions:
-            justifications_collected = Adviser.create_adviser_dataframe(
-                adviser_version=adviser_version,
-                adviser_files=adviser_files,
-                justifications_collected=justifications_collected,
+    _LOGGER.info(f"Start Date considered: {start_date}")
+    _LOGGER.info(f"End Date considered (excluded): {end_date}")
+
+    delta = datetime.timedelta(days=1)
+
+    if end_date < start_date:
+        _LOGGER.error(f"Cannot analyze adviser data: end date ({end_date}) < start_date ({start_date}).")
+
+    if end_date == start_date:
+        _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}).")
+        end_date = end_date + datetime.timedelta(days=1)
+        _LOGGER.error(f"new start date is: {end_date}.")
+
+    while start_date < end_date:
+
+        current_end_date = start_date + delta
+        _LOGGER.info(f"Analyzing data for: {current_end_date}")
+
+        daily_processed_daframes: List[pd.DataFrame] = {}
+
+        adviser_files = Adviser.aggregate_adviser_results(start_date=start_date, end_date=current_end_date)
+
+        if not adviser_files:
+            start_date += delta
+            continue
+
+        dataframes = Adviser.create_adviser_dataframes(adviser_files=adviser_files)
+
+        daily_justifications = retrieve_processed_justifications_dataframe(date_=start_date, dataframes=dataframes)
+        daily_processed_daframes["adviser_justifications"] = pd.DataFrame(daily_justifications)
+
+        if not daily_processed_daframes["adviser_justifications"].empty and not _STORE_ON_CEPH:
+            _LOGGER.info(
+                "Adviser justifications:"
+                f'\n{daily_processed_daframes["adviser_justifications"].to_csv(header=False, sep="`", index=False)}'
             )
 
-        adviser_dataframe = Adviser._create_adviser_dataframe(justifications_collected)
+        daily_statistics = retrieve_processed_statistics_dataframe(date_=start_date, dataframes=dataframes)
+        daily_processed_daframes["adviser_statistics"] = pd.DataFrame(daily_statistics)
 
-        if not adviser_dataframe.empty:
+        if not daily_processed_daframes["adviser_statistics"].empty and not _STORE_ON_CEPH:
+            _LOGGER.info(
+                "Adviser statistics success rate:"
+                f'\n{daily_processed_daframes["adviser_statistics"].to_csv(header=False, sep="`", index=False)}'
+            )
 
-            adviser_dataframe["date_"] = [
-                pd.to_datetime(str(v_date)).strftime("%Y-%m-%d") for v_date in adviser_dataframe["date"].values
-            ]
+        daily_inputs_info = retrieve_processed_inputs_info_dataframe(date_=start_date, dataframes=dataframes)
+        daily_processed_daframes["adviser_integration_info"] = pd.DataFrame(daily_inputs_info["integration_info"])
+        daily_processed_daframes["adviser_recommendation_info"] = pd.DataFrame(daily_inputs_info["recommendation_info"])
+        daily_processed_daframes["adviser_solver_info"] = pd.DataFrame(daily_inputs_info["solver_info"])
+        daily_processed_daframes["adviser_base_image_info"] = pd.DataFrame(daily_inputs_info["base_image_info"])
+        daily_processed_daframes["adviser_hardware_info"] = pd.DataFrame(daily_inputs_info["hardware_info"])
 
-            advise_justifications: List[Dict[str, Any]] = []
+        if not daily_processed_daframes["adviser_integration_info"].empty and not _STORE_ON_CEPH:
+            _LOGGER.info(
+                "Adviser integration info stats:"
+                f'\n{daily_processed_daframes["adviser_integration_info"].to_csv(header=False, sep="`", index=False)}'
+            )
 
-            for adviser_version in adviser_versions:
-                for unique_message in adviser_dataframe["message"].unique():
-                    subset_df = adviser_dataframe[
-                        (adviser_dataframe["message"] == unique_message)
-                        & (adviser_dataframe["date_"] == str(initial_date.strftime("%Y-%m-%d")))
-                        & (adviser_dataframe["analyzer_version"] == adviser_version)
-                    ]
+        if not daily_processed_daframes["adviser_recommendation_info"].empty and not _STORE_ON_CEPH:
+            _LOGGER.info(
+                "Adviser recomendation info stats:"
+                f'\n{daily_processed_daframes["adviser_recommendation_info"].to_csv(header=False, sep="`", index=False)}'
+            )
 
-                    if not subset_df.empty:
-                        counts = subset_df.shape[0]
+        if not daily_processed_daframes["adviser_solver_info"].empty and not _STORE_ON_CEPH:
+            _LOGGER.info(
+                "Adviser solver info stats:"
+                f'\n{daily_processed_daframes["adviser_solver_info"].to_csv(header=False, sep="`", index=False)}'
+            )
 
-                        types = [t for t in subset_df["type"].unique()]
+        if not daily_processed_daframes["adviser_base_image_info"].empty and not _STORE_ON_CEPH:
+            _LOGGER.info(
+                "Adviser base image info stats:"
+                f'\n{daily_processed_daframes["adviser_base_image_info"].to_csv(header=False, sep="`", index=False)}'
+            )
 
-                        if len(types) > 1:
-                            _LOGGER.warning("type assigned to same message is different %s", types)
+        if not daily_processed_daframes["adviser_hardware_info"].empty and not _STORE_ON_CEPH:
+            _LOGGER.info(
+                "Adviser hardware info stats:"
+                f'\n{daily_processed_daframes["adviser_hardware_info"].to_csv(header=False, sep="`", index=False)}'
+            )
 
-                        advise_justifications.append(
-                            {
-                                "date": initial_date.strftime("%Y-%m-%d"),
-                                "message": unique_message,
-                                "count": counts,
-                                "type": types[0],
-                                "adviser_version": adviser_version,
-                            }
-                        )
-
-            if not advise_justifications:
-                _LOGGER.info(
-                    f"No adviser justifications found in date: {initial_date.strftime('%Y-%m-%d')}"
-                    f" for adviser versions: {adviser_versions}"
+        if _STORE_ON_CEPH:
+            for result_class, processed_df in daily_processed_daframes.items():
+                save_results_to_ceph(
+                    processed_df=processed_df,
+                    result_class=result_class,
+                    date_filter=start_date,
+                    store_to_public_ceph=_STORE_ON_PUBLIC_CEPH,
                 )
 
-            total_justifications += advise_justifications
+        total_justifications += daily_justifications
+        start_date += delta
 
-            advise_justification_df = pd.DataFrame(advise_justifications)
-
-            save_results_to_ceph(advise_justification_df=advise_justification_df, date_filter=initial_date)
-
-        else:
-            _LOGGER.warning(f"No adviser documents identified on {initial_date.strftime('%d-%m-%Y')}")
-
-    if _THOTH_METRICS_PUSHGATEWAY_URL:
+    if _SEND_METRICS:
         try:
             _LOGGER.debug(
                 "Submitting metrics to Prometheus pushgateway %r",
@@ -185,7 +218,7 @@ def main():
         except Exception as exc:
             _LOGGER.exception("An error occurred pushing the metrics: %s", str(exc))
 
-    if ONLY_STORE or EVALUATION_METRICS_DAYS > 1:
+    if not _SEND_MESSAGES:
         return
 
     for advise_justification in total_justifications:
@@ -197,8 +230,8 @@ def main():
         try:
             producer.publish_to_topic(
                 p,
-                AdviseJustificationMessage(),
-                AdviseJustificationMessage.MessageContents(
+                AdviseJustificationContents(),
+                AdviseJustificationContents.MessageContents(
                     message=message,
                     count=int(count),
                     justification_type=justification_type,

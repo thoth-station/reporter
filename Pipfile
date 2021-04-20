@@ -5,7 +5,7 @@ verify_ssl = true
 
 [packages]
 prometheus-client = "*"
-thoth-report-processing = "*"
+thoth-report-processing = ">=0.6.0"
 thoth-common = "*"
 thoth-messaging = "*"
 

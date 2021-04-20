@@ -23,6 +23,7 @@ import datetime
 from typing import Dict, Any, List
 
 from thoth.common.enums import ThothAdviserIntegrationEnum
+from thoth.storages.graph.enums import RecommendationTypeEnum
 from thoth.advise_reporter.utils import parse_justification, retrieve_thoth_sli_from_ceph
 
 import pandas as pd
@@ -32,7 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _retrieve_processed_justifications_dataframe(
-    date_: datetime.datetime,
+    date_: datetime.date,
     dataframes: Dict[str, pd.DataFrame],
 ) -> List[Dict[str, Any]]:
     adviser_justifications_dataframe = dataframes["justifications"]
@@ -45,7 +46,7 @@ def _retrieve_processed_justifications_dataframe(
             for unique_message in adviser_justifications_dataframe["message"].unique():
                 subset_df = adviser_justifications_dataframe[
                     (adviser_justifications_dataframe["message"] == unique_message)
-                    & (adviser_justifications_dataframe["date_"] == str(date_.strftime("%Y-%m-%d")))
+                    & (adviser_justifications_dataframe["date_"] == str(date_))
                     & (adviser_justifications_dataframe["analyzer_version"] == adviser_version)
                 ]
 
@@ -76,56 +77,81 @@ def _retrieve_processed_justifications_dataframe(
     return advise_justifications
 
 
-def _post_process_total_justifications(
-    start_date: datetime.date, result_class: str, justification_tdf: pd.DataFrame
-) -> List[Dict[str, Any]]:
-    total_advise_justifications = []
-
-    file_path = f"{result_class}/{result_class}-{start_date - datetime.timedelta(days=1)}.csv"
-    stored_justifications_df = retrieve_thoth_sli_from_ceph(
-        file_path=file_path, columns=["adviser_version", "message", "count"]
-    )
-
-    for message in justification_tdf["message"].unique():
-        for adviser_version in justification_tdf["adviser_version"].unique():
-            subset_df = justification_tdf[
-                (justification_tdf["message"] == message) & (justification_tdf["adviser_version"] == adviser_version)
-            ]
-            counts = subset_df["count"].sum()
-
-            additions = 0
-            if not stored_justifications_df.empty:
-                additions = stored_justifications_df[
-                    (stored_justifications_df["message"] == message)
-                    & (stored_justifications_df["adviser_version"] == adviser_version)
-                ]["count"]
-
-            if counts:
-                total_advise_justifications.append(
-                    {
-                        "adviser_version": adviser_version,
-                        "message": message,
-                        "count": counts + additions,
-                    }
-                )
-
-    return total_advise_justifications
-
-
-def _retrieve_processed_integration_info_dataframe(
-    date_: datetime.datetime,
+def _retrieve_processed_statistics_dataframe(
+    date_: datetime.date,
     dataframes: Dict[str, pd.DataFrame],
 ) -> List[Dict[str, Any]]:
-    adviser_integration_info_dataframe = dataframes["integration_info"]
+    advise_statistics_dataframe = dataframes["statistics"]
+
+    advise_statistics: List[Dict[str, Any]] = []
+
+    if not advise_statistics_dataframe.empty:
+
+        for adviser_version in advise_statistics_dataframe["adviser_version"].unique():
+            subset_df = advise_statistics_dataframe[(advise_statistics_dataframe["adviser_version"] == adviser_version)]
+
+            advise_statistics.append(
+                {
+                    "adviser_version": adviser_version,
+                    "success": subset_df["success"].values[0],
+                    "failure": subset_df["failure"].values[0],
+                }
+            )
+
+        if not advise_statistics:
+            _LOGGER.info(f"No adviser statistics found in date: {date_.strftime('%Y-%m-%d')}")
+
+    else:
+        _LOGGER.warning(f"No adviser statistics identified on {date_.strftime('%d-%m-%Y')}")
+
+    return advise_statistics
+
+
+def _post_process_total_adviser_quantity(
+    start_date: datetime.date, result_class: str, tdf: pd.DataFrame, quantity: str
+) -> List[Dict[str, Any]]:
+
+    total_adviser_quantity = []
+
+    ceph_path = f"{result_class}/{result_class}-{start_date - datetime.timedelta(days=1)}.csv"
+    stored_tdf = retrieve_thoth_sli_from_ceph(ceph_path=ceph_path, columns=[quantity, "count"])
+
+    for quantity_ in tdf[quantity].unique():
+        subset_df = tdf[tdf[quantity] == quantity_]
+        counts = subset_df["count"].sum()
+
+        additions = 0
+        if not stored_tdf.empty:
+            additions = stored_tdf[stored_tdf[quantity] == quantity_]["count"].values[0]
+
+        total_adviser_quantity.append(
+            {
+                quantity: quantity_,
+                "count": counts + additions,
+            }
+        )
+
+    return total_adviser_quantity
+
+
+def _retrieve_processed_inputs_info_dataframe(
+    date_: datetime.date,
+    dataframes: Dict[str, pd.DataFrame],
+) -> Dict[str, List[Dict[str, Any]]]:
+    adviser_inputs_info_dataframe = dataframes["inputs_info"]
 
     integration_info: List[Dict[str, Any]] = []
+    recommendation_type_info: List[Dict[str, Any]] = []
+    solver_info: List[Dict[str, Any]] = []
+    base_image_info: List[Dict[str, Any]] = []
+    hardware_info: List[Dict[str, Any]] = []
 
-    if not adviser_integration_info_dataframe.empty:
+    if not adviser_inputs_info_dataframe.empty:
 
         for advise_integration in ThothAdviserIntegrationEnum._member_names_:  # type: ignore
-            subset_df = adviser_integration_info_dataframe[
-                (adviser_integration_info_dataframe["source_type"] == advise_integration)
-                & (adviser_integration_info_dataframe["date_"] == str(date_.strftime("%Y-%m-%d")))
+            subset_df = adviser_inputs_info_dataframe[
+                (adviser_inputs_info_dataframe["source_type"] == advise_integration)
+                & (adviser_inputs_info_dataframe["date_"] == str(date_))
             ]
 
             counts = 0
@@ -135,8 +161,8 @@ def _retrieve_processed_integration_info_dataframe(
 
             integration_info.append(
                 {
-                    "date": date_.strftime("%Y-%m-%d"),
-                    "source_type": advise_integration,
+                    "date": str(date_),
+                    "integration": advise_integration,
                     "count": counts,
                 }
             )
@@ -144,34 +170,108 @@ def _retrieve_processed_integration_info_dataframe(
         if not integration_info:
             _LOGGER.info(f"No adviser integration info found in date: {date_.strftime('%Y-%m-%d')}")
 
+        for recommendation_type in RecommendationTypeEnum._member_names_:  # type: ignore
+            subset_df = adviser_inputs_info_dataframe[
+                (adviser_inputs_info_dataframe["recommendation_type"] == recommendation_type)
+                & (adviser_inputs_info_dataframe["date_"] == str(date_))
+            ]
+
+            counts = 0
+
+            if not subset_df.empty:
+                counts = subset_df.shape[0]
+
+            recommendation_type_info.append(
+                {
+                    "date": str(date_),
+                    "recommendation_type": recommendation_type,
+                    "count": counts,
+                }
+            )
+
+        if not recommendation_type_info:
+            _LOGGER.info(f"No adviser recommendation_type info found in date: {date_.strftime('%Y-%m-%d')}")
+
+        for solver in adviser_inputs_info_dataframe["solver"].unique():
+            subset_df = adviser_inputs_info_dataframe[
+                (adviser_inputs_info_dataframe["solver"] == solver)
+                & (adviser_inputs_info_dataframe["date_"] == str(date_))
+            ]
+
+            counts = 0
+
+            if not subset_df.empty:
+                counts = subset_df.shape[0]
+
+            solver_info.append(
+                {
+                    "date": str(date_),
+                    "solver": solver,
+                    "count": counts,
+                }
+            )
+
+        if not solver_info:
+            _LOGGER.info(f"No adviser solver info found in date: {date_.strftime('%Y-%m-%d')}")
+
+        for base_image in adviser_inputs_info_dataframe["base_image"].unique():
+            subset_df = adviser_inputs_info_dataframe[
+                (adviser_inputs_info_dataframe["base_image"] == base_image)
+                & (adviser_inputs_info_dataframe["cpu_model"] != "None")
+                & (adviser_inputs_info_dataframe["date_"] == str(date_))
+            ]
+
+            counts = 0
+
+            if not subset_df.empty:
+                counts = subset_df.shape[0]
+
+            if base_image:
+                base_image_info.append(
+                    {
+                        "date": str(date_),
+                        "base_image": base_image,
+                        "count": counts,
+                    }
+                )
+
+        if not base_image_info:
+            _LOGGER.info(f"No adviser base_image info found in date: {date_.strftime('%Y-%m-%d')}")
+
+        for cpu_model in adviser_inputs_info_dataframe["cpu_model"].unique():
+            subset_df = adviser_inputs_info_dataframe[
+                (adviser_inputs_info_dataframe["cpu_model"] == cpu_model)
+                & (adviser_inputs_info_dataframe["cpu_model"] != "None")
+                & (adviser_inputs_info_dataframe["date_"] == str(date_))
+            ]
+
+            counts = 0
+            cpu_family = ""
+
+            if not subset_df.empty:
+                counts = subset_df.shape[0]
+                cpu_family = subset_df["cpu_family"].values[0]
+
+            if cpu_model and cpu_family:
+                hardware_info.append(
+                    {
+                        "date": str(date_),
+                        "cpu_model": cpu_model,
+                        "cpu_family": cpu_family,
+                        "count": counts,
+                    }
+                )
+
+        if not hardware_info:
+            _LOGGER.info(f"No adviser hardware info found in date: {date_.strftime('%Y-%m-%d')}")
+
     else:
-        _LOGGER.warning(f"No adviser integration info identified on {date_.strftime('%d-%m-%Y')}")
+        _LOGGER.warning(f"No adviser inputs info identified on {date_.strftime('%d-%m-%Y')}")
 
-    return integration_info
-
-
-def _post_process_total_integration_info(
-    start_date: datetime.date, result_class: str, user_info_tdf: pd.DataFrame
-) -> List[Dict[str, Any]]:
-
-    total_advise_integration_info = []
-
-    file_path = f"{result_class}/{result_class}-{start_date - datetime.timedelta(days=1)}.csv"
-    stored_integration_info_df = retrieve_thoth_sli_from_ceph(file_path=file_path, columns=["source_type", "count"])
-
-    for source_type in user_info_tdf["source_type"].unique():
-        subset_df = user_info_tdf[user_info_tdf["source_type"] == source_type]
-        counts = subset_df["count"].sum()
-
-        additions = 0
-        if not stored_integration_info_df.empty:
-            additions = stored_integration_info_df[stored_integration_info_df["source_type"] == source_type]["count"]
-
-        total_advise_integration_info.append(
-            {
-                "source_type": source_type,
-                "count": counts + additions,
-            }
-        )
-
-    return total_advise_integration_info
+    return {
+        "integration_info": integration_info,
+        "recommendation_info": recommendation_type_info,
+        "solver_info": solver_info,
+        "base_image_info": base_image_info,
+        "hardware_info": hardware_info,
+    }

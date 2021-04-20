@@ -19,9 +19,9 @@
 
 import logging
 import os
-import datetime
 
-from typing import List
+from typing import List, Union
+from datetime import date
 
 from io import StringIO
 import pandas as pd
@@ -36,7 +36,7 @@ CEPH_BUCKET_PREFIX = os.environ["THOTH_CEPH_BUCKET_PREFIX"]
 PUBLIC_CEPH_BUCKET = os.environ["THOTH_PUBLIC_CEPH_BUCKET"]
 
 
-def save_results_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: datetime.datetime):
+def save_results_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: Union[date, str] = None):
     """Save results on Ceph."""
     if processed_df.empty:
         return processed_df
@@ -46,7 +46,7 @@ def save_results_to_ceph(processed_df: pd.DataFrame, result_class: str, date_fil
     return _store_to_ceph(processed_df=processed_df, result_class=result_class, date_filter=date_filter)
 
 
-def _store_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: datetime.datetime) -> None:
+def _store_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: Union[date, str] = None) -> None:
     """Store results to Ceph for visualization."""
     ceph_sli = Adviser.connect_to_ceph(
         ceph_bucket_prefix=CEPH_BUCKET_PREFIX, processed_data_name="thoth-sli-metrics", environment=ENVIRONMENT
@@ -59,7 +59,10 @@ def _store_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: d
         bucket=PUBLIC_CEPH_BUCKET,
     )
 
-    ceph_path = f"{result_class}/{result_class}-{date_filter}.csv"
+    if date_filter:
+        ceph_path = f"{result_class}/{result_class}-{date_filter}.csv"
+    else:
+        ceph_path = f"{result_class}/{result_class}.csv"
 
     _LOGGER.info(f"Results to be stored on Ceph...{processed_df}")
 
@@ -69,21 +72,19 @@ def _store_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: d
         Adviser.store_csv_from_dataframe(
             csv_from_df=csv, ceph_sli=ceph_sli, file_name=result_class, ceph_path=ceph_path
         )
+        _LOGGER.info(f"Successfully stored in Thoth bucket on Ceph...{ceph_path}")
     except Exception as e_ceph:
         _LOGGER.exception(f"Could not store metrics on Thoth bucket on Ceph...{e_ceph}")
         pass
-
-    _LOGGER.info(f"Successfully stored in Thoth bucket on Ceph...{ceph_path}")
 
     try:
         Adviser.store_csv_from_dataframe(
             csv_from_df=csv, ceph_sli=public_ceph_sli, file_name=result_class, ceph_path=ceph_path, is_public=True
         )
+        _LOGGER.info(f"Successfully stored in Public bucket on Ceph...{ceph_path}")
     except Exception as e_ceph:
         _LOGGER.exception(f"Could not store metrics on Public bucket on Ceph...{e_ceph}")
         pass
-
-    _LOGGER.info(f"Successfully stored in Public bucket on Ceph...{ceph_path}")
 
 
 def retrieve_thoth_sli_from_ceph(ceph_path: str, columns: List[str]) -> pd.DataFrame:
@@ -96,7 +97,7 @@ def retrieve_thoth_sli_from_ceph(ceph_path: str, columns: List[str]) -> pd.DataF
     try:
         retrieved_data = ceph_sli.retrieve_blob(object_key=ceph_path).decode("utf-8")
         data = StringIO(retrieved_data)
-        last_week_data = pd.read_csv(data, names=columns)
+        last_week_data = pd.read_csv(data, sep="`", names=columns)
 
     except Exception as e:
         _LOGGER.warning(f"No file could be retrieved from Ceph: {e}")

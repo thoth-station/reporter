@@ -35,27 +35,35 @@ CEPH_BUCKET_PREFIX = os.environ["THOTH_CEPH_BUCKET_PREFIX"]
 PUBLIC_CEPH_BUCKET = os.environ["THOTH_PUBLIC_CEPH_BUCKET"]
 
 
-def save_results_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: Union[date, str] = None):
+def save_results_to_ceph(
+    processed_df: pd.DataFrame,
+    result_class: str,
+    date_filter: Union[date, str] = None,
+    store_to_public_ceph: bool = False
+):
     """Save results on Ceph."""
     if processed_df.empty:
         return processed_df
 
     _LOGGER.info("Storing to Ceph...")
 
-    return _store_to_ceph(processed_df=processed_df, result_class=result_class, date_filter=date_filter)
+    return _store_to_ceph(
+        processed_df=processed_df,
+        result_class=result_class,
+        date_filter=date_filter,
+        store_to_public_ceph=store_to_public_ceph
+    )
 
 
-def _store_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: Union[date, str] = None) -> None:
+def _store_to_ceph(
+    processed_df: pd.DataFrame,
+    result_class: str,
+    date_filter: Union[date, str] = None,
+    store_to_public_ceph: bool = False,
+) -> None:
     """Store results to Ceph for visualization."""
     ceph_sli = Adviser.connect_to_ceph(
         ceph_bucket_prefix=CEPH_BUCKET_PREFIX, processed_data_name="thoth-sli-metrics", environment=ENVIRONMENT
-    )
-
-    public_ceph_sli = Adviser.connect_to_ceph(
-        ceph_bucket_prefix=CEPH_BUCKET_PREFIX,
-        processed_data_name="thoth-sli-metrics",
-        environment=ENVIRONMENT,
-        bucket=PUBLIC_CEPH_BUCKET,
     )
 
     if date_filter:
@@ -76,14 +84,22 @@ def _store_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: U
         _LOGGER.exception(f"Could not store metrics on Thoth bucket on Ceph...{e_ceph}")
         pass
 
-    try:
-        Adviser.store_csv_from_dataframe(
-            csv_from_df=csv, ceph_sli=public_ceph_sli, file_name=result_class, ceph_path=ceph_path, is_public=True
+    if store_to_public_ceph:
+        public_ceph_sli = Adviser.connect_to_ceph(
+            ceph_bucket_prefix=CEPH_BUCKET_PREFIX,
+            processed_data_name="thoth-sli-metrics",
+            environment=ENVIRONMENT,
+            bucket=PUBLIC_CEPH_BUCKET,
         )
-        _LOGGER.info(f"Successfully stored in Public bucket on Ceph...{ceph_path}")
-    except Exception as e_ceph:
-        _LOGGER.exception(f"Could not store metrics on Public bucket on Ceph...{e_ceph}")
-        pass
+
+        try:
+            Adviser.store_csv_from_dataframe(
+                csv_from_df=csv, ceph_sli=public_ceph_sli, file_name=result_class, ceph_path=ceph_path, is_public=True
+            )
+            _LOGGER.info(f"Successfully stored in Public bucket on Ceph...{ceph_path}")
+        except Exception as e_ceph:
+            _LOGGER.exception(f"Could not store metrics on Public bucket on Ceph...{e_ceph}")
+            pass
 
 
 def parse_justification(justification: str) -> str:

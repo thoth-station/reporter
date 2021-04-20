@@ -50,6 +50,8 @@ _THOTH_DEPLOYMENT_NAME = os.getenv("THOTH_DEPLOYMENT_NAME")
 
 _SEND_MESSAGES = bool(int(os.getenv("THOTH_ADVISE_REPORTER_SEND_KAFKA_MESSAGES", 0)))
 _STORE_ON_CEPH = bool(int(os.getenv("THOTH_ADVISE_REPORTER_STORE_ON_CEPH", 1)))
+_STORE_ON_PUBLIC_CEPH = bool(int(os.getenv("THOTH_ADVISE_REPORTER_STORE_ON_PUBLIC_CEPH", 0)))
+
 _SEND_METRICS = bool(int(os.getenv("THOTH_ADVISE_REPORTER_SEND_METRICS", 1)))
 
 if _SEND_MESSAGES:
@@ -154,30 +156,44 @@ def main():
         daily_processed_daframes["adviser_base_image_info"] = pd.DataFrame(daily_inputs_info["base_image_info"])
         daily_processed_daframes["adviser_hardware_info"] = pd.DataFrame(daily_inputs_info["hardware_info"])
 
-        _LOGGER.info(
-            "Adviser integration info stats:"
-            f'\n{daily_processed_daframes["adviser_integration_info"].to_csv(header=False, sep="`", index=False)}'
-        )
-        _LOGGER.info(
-            "Adviser recomendation info stats:"
-            f'\n{daily_processed_daframes["adviser_recommendation_info"].to_csv(header=False, sep="`", index=False)}'
-        )
-        _LOGGER.info(
-            "Adviser solver info stats:"
-            f'\n{daily_processed_daframes["adviser_solver_info"].to_csv(header=False, sep="`", index=False)}'
-        )
-        _LOGGER.info(
-            "Adviser base image info stats:"
-            f'\n{daily_processed_daframes["adviser_base_image_info"].to_csv(header=False, sep="`", index=False)}'
-        )
-        _LOGGER.info(
-            "Adviser hardware info stats:"
-            f'\n{daily_processed_daframes["adviser_hardware_info"].to_csv(header=False, sep="`", index=False)}'
-        )
+        if not daily_processed_daframes["adviser_integration_info"].empty:
+            _LOGGER.info(
+                "Adviser integration info stats:"
+                f'\n{daily_processed_daframes["adviser_integration_info"].to_csv(header=False, sep="`", index=False)}'
+            )
+        
+        if not daily_processed_daframes["adviser_recommendation_info"].empty:
+            _LOGGER.info(
+                "Adviser recomendation info stats:"
+                f'\n{daily_processed_daframes["adviser_recommendation_info"].to_csv(header=False, sep="`", index=False)}'
+            )
+        
+        if not daily_processed_daframes["adviser_solver_info"].empty:
+            _LOGGER.info(
+                "Adviser solver info stats:"
+                f'\n{daily_processed_daframes["adviser_solver_info"].to_csv(header=False, sep="`", index=False)}'
+            )
+
+        if not daily_processed_daframes["adviser_base_image_info"].empty:
+            _LOGGER.info(
+                "Adviser base image info stats:"
+                f'\n{daily_processed_daframes["adviser_base_image_info"].to_csv(header=False, sep="`", index=False)}'
+            )
+        
+        if not daily_processed_daframes["adviser_hardware_info"].empty:
+            _LOGGER.info(
+                "Adviser hardware info stats:"
+                f'\n{daily_processed_daframes["adviser_hardware_info"].to_csv(header=False, sep="`", index=False)}'
+            )
 
         if _STORE_ON_CEPH:
             for result_class, processed_df in daily_processed_daframes.items():
-                save_results_to_ceph(processed_df=processed_df, result_class=result_class, date_filter=start_date)
+                save_results_to_ceph(
+                    processed_df=processed_df,
+                    result_class=result_class,
+                    date_filter=start_date,
+                    store_to_public_ceph=_STORE_ON_PUBLIC_CEPH
+                )
 
         total_justifications += daily_justifications
         start_date += delta

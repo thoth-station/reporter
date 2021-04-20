@@ -84,7 +84,7 @@ if _THOTH_METRICS_PUSHGATEWAY_URL:
         "advise-reporter", GraphDatabase().get_script_alembic_version_head(), _THOTH_DEPLOYMENT_NAME
     ).inc()
 
-START_DATE = os.getenv("ADVISE_REPORTER_START_DATE", str(datetime.date.today() - datetime.timedelta(days=1)))
+START_DATE = os.getenv("ADVISE_REPORTER_START_DATE", str(datetime.date.today()))
 END_DATE = os.getenv("ADVISE_REPORTER_END_DATE", str(datetime.date.today()))
 
 
@@ -112,24 +112,41 @@ def main():
     _LOGGER.info(f"Start Date considered: {start_date}")
     _LOGGER.info(f"End Date considered (excluded): {end_date}")
 
+    today = datetime.date.today()
     delta = datetime.timedelta(days=1)
+
+    if start_date == today + delta:
+        _LOGGER.warning(f"start date ({start_date}) cannot be in the future. Today is: {today}.")
+        start_date = today
+        _LOGGER.warning(f"new start date is: {start_date}.")
 
     if end_date < start_date:
         _LOGGER.error(f"Cannot analyze adviser data: end date ({end_date}) < start_date ({start_date}).")
+        return 
 
     if end_date == start_date:
-        _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}).")
-        end_date = end_date + datetime.timedelta(days=1)
-        _LOGGER.error(f"new start date is: {end_date}.")
+        if start_date == today:
+            start_date = start_date - delta
+            _LOGGER.warning(
+                f"end date ({end_date}) == start_date ({start_date}) == today ({today})."
+            )
+            _LOGGER.warning(f"new start date is: {start_date}.")
+        else:
+            _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}).")
+            end_date = end_date + datetime.timedelta(days=1)
+            _LOGGER.warning(f"new end date (excluded) is: {end_date}.")
 
-    while start_date < end_date:
+    current_initial_date = start_date
 
-        current_end_date = start_date + delta
-        _LOGGER.info(f"Analyzing data for: {current_end_date}")
+    while current_initial_date < end_date:
+
+        _LOGGER.info(f"Analyzing data for: {current_initial_date}")
+
+        current_end_date = current_initial_date + delta
 
         daily_processed_daframes: List[pd.DataFrame] = {}
 
-        adviser_files = Adviser.aggregate_adviser_results(start_date=start_date, end_date=current_end_date)
+        adviser_files = Adviser.aggregate_adviser_results(start_date=current_initial_date, end_date=current_end_date)
 
         if not adviser_files:
             start_date += delta
@@ -137,7 +154,9 @@ def main():
 
         dataframes = Adviser.create_adviser_dataframes(adviser_files=adviser_files)
 
-        daily_justifications = retrieve_processed_justifications_dataframe(date_=start_date, dataframes=dataframes)
+        daily_justifications = retrieve_processed_justifications_dataframe(
+            date_=current_initial_date, dataframes=dataframes
+        )
         daily_processed_daframes["adviser_justifications"] = pd.DataFrame(daily_justifications)
 
         if not daily_processed_daframes["adviser_justifications"].empty and not _STORE_ON_CEPH:
@@ -146,7 +165,7 @@ def main():
                 f'\n{daily_processed_daframes["adviser_justifications"].to_csv(header=False, sep="`", index=False)}'
             )
 
-        daily_statistics = retrieve_processed_statistics_dataframe(date_=start_date, dataframes=dataframes)
+        daily_statistics = retrieve_processed_statistics_dataframe(date_=current_initial_date, dataframes=dataframes)
         daily_processed_daframes["adviser_statistics"] = pd.DataFrame(daily_statistics)
 
         if not daily_processed_daframes["adviser_statistics"].empty and not _STORE_ON_CEPH:
@@ -197,12 +216,12 @@ def main():
                 save_results_to_ceph(
                     processed_df=processed_df,
                     result_class=result_class,
-                    date_filter=start_date,
+                    date_filter=current_initial_date,
                     store_to_public_ceph=_STORE_ON_PUBLIC_CEPH,
                 )
 
         total_justifications += daily_justifications
-        start_date += delta
+        current_initial_date += delta
 
     if _SEND_METRICS:
         try:

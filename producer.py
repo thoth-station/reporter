@@ -121,6 +121,11 @@ def main():
         start_date = TODAY
         _LOGGER.warning(f"new start date is: {start_date}.")
 
+    if end_date > TODAY + delta:
+        _LOGGER.warning(f"end date ({end_date}) cannot be in the future. Today is: {TODAY}.")
+        end_date = TODAY
+        _LOGGER.warning(f"new end date is: {end_date}.")
+
     if end_date < start_date:
         _LOGGER.error(f"Cannot analyze adviser data: end date ({end_date}) < start_date ({start_date}).")
         return
@@ -139,16 +144,17 @@ def main():
 
     while current_initial_date < end_date:
 
-        _LOGGER.info(f"Analyzing data for: {current_initial_date}")
-
         current_end_date = current_initial_date + delta
+
+        _LOGGER.info(f"Analyzing for start date: {current_initial_date}")
+        _LOGGER.info(f"Analyzing for end date (excluded): {current_end_date}")
 
         daily_processed_daframes: List[pd.DataFrame] = {}
 
         adviser_files = Adviser.aggregate_adviser_results(start_date=current_initial_date, end_date=current_end_date)
 
         if not adviser_files:
-            start_date += delta
+            current_initial_date += delta
             continue
 
         dataframes = Adviser.create_adviser_dataframes(adviser_files=adviser_files)

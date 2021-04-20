@@ -343,3 +343,17 @@ all the things that you see...
 * include thoth issue template for kebechet updates
 ### Other
 * remove deprecated ci files
+
+## Release 0.7.0 (2021-04-20T12:00:37)
+### Features
+* Adjust date inputs (#180)
+* :arrow_up: Automatic update of dependencies by Kebechet (#178)
+* :arrow_up: Automatic update of dependencies by Kebechet (#177)
+* :arrow_up: Automatic update of dependencies by Kebechet (#175)
+* :arrow_up: Automatic update of dependencies by Kebechet (#174)
+* constrain thoth-messaging (#168)
+* :arrow_up: Automatic update of dependencies by Kebechet (#172)
+* :arrow_up: Automatic update of dependencies by Kebechet
+* :arrow_up: Automatic update of dependencies by Kebechet (#170)
+### Improvements
+* Add analyzed data for adviser reports inputs and statistics (#179)

@@ -20,10 +20,9 @@
 import logging
 import os
 
-from typing import List, Union
+from typing import Union
 from datetime import date
 
-from io import StringIO
 import pandas as pd
 
 from thoth.report_processing.components import Adviser
@@ -85,25 +84,6 @@ def _store_to_ceph(processed_df: pd.DataFrame, result_class: str, date_filter: U
     except Exception as e_ceph:
         _LOGGER.exception(f"Could not store metrics on Public bucket on Ceph...{e_ceph}")
         pass
-
-
-def retrieve_thoth_sli_from_ceph(ceph_path: str, columns: List[str]) -> pd.DataFrame:
-    """Retrieve Thoth SLI from Ceph."""
-    ceph_sli = Adviser.connect_to_ceph(
-        ceph_bucket_prefix=CEPH_BUCKET_PREFIX, processed_data_name="thoth-sli-metrics", environment=ENVIRONMENT
-    )
-    _LOGGER.info(f"Retrieving... \n{ceph_path}")
-
-    try:
-        retrieved_data = ceph_sli.retrieve_blob(object_key=ceph_path).decode("utf-8")
-        data = StringIO(retrieved_data)
-        last_week_data = pd.read_csv(data, sep="`", names=columns)
-
-    except Exception as e:
-        _LOGGER.warning(f"No file could be retrieved from Ceph: {e}")
-        last_week_data = pd.DataFrame(columns=columns)
-
-    return last_week_data
 
 
 def parse_justification(justification: str) -> str:

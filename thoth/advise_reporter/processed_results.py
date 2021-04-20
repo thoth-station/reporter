@@ -24,7 +24,7 @@ from typing import Dict, Any, List
 
 from thoth.common.enums import ThothAdviserIntegrationEnum
 from thoth.storages.graph.enums import RecommendationTypeEnum
-from thoth.advise_reporter.utils import parse_justification, retrieve_thoth_sli_from_ceph
+from thoth.advise_reporter.utils import parse_justification
 
 import pandas as pd
 
@@ -105,33 +105,6 @@ def _retrieve_processed_statistics_dataframe(
         _LOGGER.warning(f"No adviser statistics identified on {date_.strftime('%d-%m-%Y')}")
 
     return advise_statistics
-
-
-def _post_process_total_adviser_quantity(
-    start_date: datetime.date, result_class: str, tdf: pd.DataFrame, quantity: str
-) -> List[Dict[str, Any]]:
-
-    total_adviser_quantity = []
-
-    ceph_path = f"{result_class}/{result_class}-{start_date - datetime.timedelta(days=1)}.csv"
-    stored_tdf = retrieve_thoth_sli_from_ceph(ceph_path=ceph_path, columns=[quantity, "count"])
-
-    for quantity_ in tdf[quantity].unique():
-        subset_df = tdf[tdf[quantity] == quantity_]
-        counts = subset_df["count"].sum()
-
-        additions = 0
-        if not stored_tdf.empty:
-            additions = stored_tdf[stored_tdf[quantity] == quantity_]["count"].values[0]
-
-        total_adviser_quantity.append(
-            {
-                quantity: quantity_,
-                "count": counts + additions,
-            }
-        )
-
-    return total_adviser_quantity
 
 
 def _retrieve_processed_inputs_info_dataframe(

@@ -125,29 +125,35 @@ def main():
     while start_date < end_date:
 
         current_end_date = start_date + delta
-        _LOGGER.info(f"Analyzing data for: {start_date}")
+        _LOGGER.info(f"Analyzing data for: {current_end_date}")
 
         daily_processed_daframes: List[pd.DataFrame] = {}
 
         adviser_files = Adviser.aggregate_adviser_results(start_date=start_date, end_date=current_end_date)
+
+        if not adviser_files:
+            start_date += delta
+            continue
 
         dataframes = Adviser.create_adviser_dataframes(adviser_files=adviser_files)
 
         daily_justifications = _retrieve_processed_justifications_dataframe(date_=start_date, dataframes=dataframes)
         daily_processed_daframes["adviser_justifications"] = pd.DataFrame(daily_justifications)
 
-        _LOGGER.info(
-            "Adviser justifications:"
-            f'\n{daily_processed_daframes["adviser_justifications"].to_csv(header=False, sep="`", index=False)}'
-        )
+        if not daily_processed_daframes["adviser_justifications"].empty and not _STORE_ON_CEPH:
+            _LOGGER.info(
+                "Adviser justifications:"
+                f'\n{daily_processed_daframes["adviser_justifications"].to_csv(header=False, sep="`", index=False)}'
+            )
 
         daily_statistics = _retrieve_processed_statistics_dataframe(date_=start_date, dataframes=dataframes)
         daily_processed_daframes["adviser_statistics"] = pd.DataFrame(daily_statistics)
 
-        _LOGGER.info(
-            "Adviser statistics success rate:"
-            f'\n{daily_processed_daframes["adviser_statistics"].to_csv(header=False, sep="`", index=False)}'
-        )
+        if not daily_processed_daframes["adviser_statistics"].empty and not _STORE_ON_CEPH:
+            _LOGGER.info(
+                "Adviser statistics success rate:"
+                f'\n{daily_processed_daframes["adviser_statistics"].to_csv(header=False, sep="`", index=False)}'
+            )
 
         daily_inputs_info = _retrieve_processed_inputs_info_dataframe(date_=start_date, dataframes=dataframes)
         daily_processed_daframes["adviser_integration_info"] = pd.DataFrame(daily_inputs_info["integration_info"])
@@ -156,31 +162,31 @@ def main():
         daily_processed_daframes["adviser_base_image_info"] = pd.DataFrame(daily_inputs_info["base_image_info"])
         daily_processed_daframes["adviser_hardware_info"] = pd.DataFrame(daily_inputs_info["hardware_info"])
 
-        if not daily_processed_daframes["adviser_integration_info"].empty:
+        if not daily_processed_daframes["adviser_integration_info"].empty and not _STORE_ON_CEPH:
             _LOGGER.info(
                 "Adviser integration info stats:"
                 f'\n{daily_processed_daframes["adviser_integration_info"].to_csv(header=False, sep="`", index=False)}'
             )
 
-        if not daily_processed_daframes["adviser_recommendation_info"].empty:
+        if not daily_processed_daframes["adviser_recommendation_info"].empty and not _STORE_ON_CEPH:
             _LOGGER.info(
                 "Adviser recomendation info stats:"
                 f'\n{daily_processed_daframes["adviser_recommendation_info"].to_csv(header=False, sep="`", index=False)}'
             )
 
-        if not daily_processed_daframes["adviser_solver_info"].empty:
+        if not daily_processed_daframes["adviser_solver_info"].empty and not _STORE_ON_CEPH:
             _LOGGER.info(
                 "Adviser solver info stats:"
                 f'\n{daily_processed_daframes["adviser_solver_info"].to_csv(header=False, sep="`", index=False)}'
             )
 
-        if not daily_processed_daframes["adviser_base_image_info"].empty:
+        if not daily_processed_daframes["adviser_base_image_info"].empty and not _STORE_ON_CEPH:
             _LOGGER.info(
                 "Adviser base image info stats:"
                 f'\n{daily_processed_daframes["adviser_base_image_info"].to_csv(header=False, sep="`", index=False)}'
             )
 
-        if not daily_processed_daframes["adviser_hardware_info"].empty:
+        if not daily_processed_daframes["adviser_hardware_info"].empty and not _STORE_ON_CEPH:
             _LOGGER.info(
                 "Adviser hardware info stats:"
                 f'\n{daily_processed_daframes["adviser_hardware_info"].to_csv(header=False, sep="`", index=False)}'

@@ -71,7 +71,7 @@ def _store_to_ceph(
     else:
         ceph_path = f"{result_class}/{result_class}.csv"
 
-    _LOGGER.info(f"Results to be stored on Ceph...{processed_df}")
+    _LOGGER.info(f"Results to be stored on Ceph...\n{processed_df}")
 
     csv: str = processed_df.to_csv(header=False, sep="`", index=False)
 
@@ -79,7 +79,6 @@ def _store_to_ceph(
         Adviser.store_csv_from_dataframe(
             csv_from_df=csv, ceph_sli=ceph_sli, file_name=result_class, ceph_path=ceph_path
         )
-        _LOGGER.info(f"Successfully stored in Thoth bucket on Ceph...{ceph_path}")
     except Exception as e_ceph:
         _LOGGER.exception(f"Could not store metrics on Thoth bucket on Ceph...{e_ceph}")
         pass
@@ -96,7 +95,6 @@ def _store_to_ceph(
             Adviser.store_csv_from_dataframe(
                 csv_from_df=csv, ceph_sli=public_ceph_sli, file_name=result_class, ceph_path=ceph_path, is_public=True
             )
-            _LOGGER.info(f"Successfully stored in Public bucket on Ceph...{ceph_path}")
         except Exception as e_ceph:
             _LOGGER.exception(f"Could not store metrics on Public bucket on Ceph...{e_ceph}")
             pass

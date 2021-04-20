@@ -126,7 +126,6 @@ def main():
         end_date = TODAY
         _LOGGER.warning(f"new end date is: {end_date}.")
 
-
     if end_date < start_date:
         _LOGGER.error(f"Cannot analyze adviser data: end date ({end_date}) < start_date ({start_date}).")
         return

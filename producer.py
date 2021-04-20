@@ -161,13 +161,13 @@ def main():
                 "Adviser integration info stats:"
                 f'\n{daily_processed_daframes["adviser_integration_info"].to_csv(header=False, sep="`", index=False)}'
             )
-        
+
         if not daily_processed_daframes["adviser_recommendation_info"].empty:
             _LOGGER.info(
                 "Adviser recomendation info stats:"
                 f'\n{daily_processed_daframes["adviser_recommendation_info"].to_csv(header=False, sep="`", index=False)}'
             )
-        
+
         if not daily_processed_daframes["adviser_solver_info"].empty:
             _LOGGER.info(
                 "Adviser solver info stats:"
@@ -179,7 +179,7 @@ def main():
                 "Adviser base image info stats:"
                 f'\n{daily_processed_daframes["adviser_base_image_info"].to_csv(header=False, sep="`", index=False)}'
             )
-        
+
         if not daily_processed_daframes["adviser_hardware_info"].empty:
             _LOGGER.info(
                 "Adviser hardware info stats:"
@@ -192,7 +192,7 @@ def main():
                     processed_df=processed_df,
                     result_class=result_class,
                     date_filter=start_date,
-                    store_to_public_ceph=_STORE_ON_PUBLIC_CEPH
+                    store_to_public_ceph=_STORE_ON_PUBLIC_CEPH,
                 )
 
         total_justifications += daily_justifications

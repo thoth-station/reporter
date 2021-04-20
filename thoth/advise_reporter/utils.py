@@ -39,7 +39,7 @@ def save_results_to_ceph(
     processed_df: pd.DataFrame,
     result_class: str,
     date_filter: Union[date, str] = None,
-    store_to_public_ceph: bool = False
+    store_to_public_ceph: bool = False,
 ):
     """Save results on Ceph."""
     if processed_df.empty:
@@ -51,7 +51,7 @@ def save_results_to_ceph(
         processed_df=processed_df,
         result_class=result_class,
         date_filter=date_filter,
-        store_to_public_ceph=store_to_public_ceph
+        store_to_public_ceph=store_to_public_ceph,
     )
 
 

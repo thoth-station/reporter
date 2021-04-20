@@ -32,10 +32,11 @@ import pandas as pd
 _LOGGER = logging.getLogger(__name__)
 
 
-def _retrieve_processed_justifications_dataframe(
+def retrieve_processed_justifications_dataframe(
     date_: datetime.date,
     dataframes: Dict[str, pd.DataFrame],
 ) -> List[Dict[str, Any]]:
+    """Process adviser reports justifications (if any)."""
     adviser_justifications_dataframe = dataframes["justifications"]
 
     advise_justifications: List[Dict[str, Any]] = []
@@ -77,10 +78,11 @@ def _retrieve_processed_justifications_dataframe(
     return advise_justifications
 
 
-def _retrieve_processed_statistics_dataframe(
+def retrieve_processed_statistics_dataframe(
     date_: datetime.date,
     dataframes: Dict[str, pd.DataFrame],
 ) -> List[Dict[str, Any]]:
+    """Process adviser reports statistics."""
     advise_statistics_dataframe = dataframes["statistics"]
 
     advise_statistics: List[Dict[str, Any]] = []
@@ -107,10 +109,11 @@ def _retrieve_processed_statistics_dataframe(
     return advise_statistics
 
 
-def _retrieve_processed_inputs_info_dataframe(
+def retrieve_processed_inputs_info_dataframe(
     date_: datetime.date,
     dataframes: Dict[str, pd.DataFrame],
 ) -> Dict[str, List[Dict[str, Any]]]:
+    """Process adviser inputs."""
     adviser_inputs_info_dataframe = dataframes["inputs_info"]
 
     integration_info: List[Dict[str, Any]] = []

@@ -30,9 +30,9 @@ from thoth.messaging.advise_justification import MessageContents as AdviseJustif
 
 from thoth.report_processing.components.adviser import Adviser
 from thoth.advise_reporter.utils import save_results_to_ceph
-from thoth.advise_reporter.processed_results import _retrieve_processed_justifications_dataframe
-from thoth.advise_reporter.processed_results import _retrieve_processed_statistics_dataframe
-from thoth.advise_reporter.processed_results import _retrieve_processed_inputs_info_dataframe
+from thoth.advise_reporter.processed_results import retrieve_processed_justifications_dataframe
+from thoth.advise_reporter.processed_results import retrieve_processed_statistics_dataframe
+from thoth.advise_reporter.processed_results import retrieve_processed_inputs_info_dataframe
 
 from thoth.advise_reporter import __service_version__
 from thoth.common import init_logging
@@ -137,7 +137,7 @@ def main():
 
         dataframes = Adviser.create_adviser_dataframes(adviser_files=adviser_files)
 
-        daily_justifications = _retrieve_processed_justifications_dataframe(date_=start_date, dataframes=dataframes)
+        daily_justifications = retrieve_processed_justifications_dataframe(date_=start_date, dataframes=dataframes)
         daily_processed_daframes["adviser_justifications"] = pd.DataFrame(daily_justifications)
 
         if not daily_processed_daframes["adviser_justifications"].empty and not _STORE_ON_CEPH:
@@ -146,7 +146,7 @@ def main():
                 f'\n{daily_processed_daframes["adviser_justifications"].to_csv(header=False, sep="`", index=False)}'
             )
 
-        daily_statistics = _retrieve_processed_statistics_dataframe(date_=start_date, dataframes=dataframes)
+        daily_statistics = retrieve_processed_statistics_dataframe(date_=start_date, dataframes=dataframes)
         daily_processed_daframes["adviser_statistics"] = pd.DataFrame(daily_statistics)
 
         if not daily_processed_daframes["adviser_statistics"].empty and not _STORE_ON_CEPH:
@@ -155,7 +155,7 @@ def main():
                 f'\n{daily_processed_daframes["adviser_statistics"].to_csv(header=False, sep="`", index=False)}'
             )
 
-        daily_inputs_info = _retrieve_processed_inputs_info_dataframe(date_=start_date, dataframes=dataframes)
+        daily_inputs_info = retrieve_processed_inputs_info_dataframe(date_=start_date, dataframes=dataframes)
         daily_processed_daframes["adviser_integration_info"] = pd.DataFrame(daily_inputs_info["integration_info"])
         daily_processed_daframes["adviser_recommendation_info"] = pd.DataFrame(daily_inputs_info["recommendation_info"])
         daily_processed_daframes["adviser_solver_info"] = pd.DataFrame(daily_inputs_info["solver_info"])

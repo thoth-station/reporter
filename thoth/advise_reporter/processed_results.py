@@ -47,7 +47,6 @@ def retrieve_processed_justifications_dataframe(
             for unique_message in adviser_justifications_dataframe["message"].unique():
                 subset_df = adviser_justifications_dataframe[
                     (adviser_justifications_dataframe["message"] == unique_message)
-                    & (adviser_justifications_dataframe["date_"] == str(date_))
                     & (adviser_justifications_dataframe["analyzer_version"] == adviser_version)
                 ]
 
@@ -127,7 +126,6 @@ def retrieve_processed_inputs_info_dataframe(
         for advise_integration in ThothAdviserIntegrationEnum._member_names_:  # type: ignore
             subset_df = adviser_inputs_info_dataframe[
                 (adviser_inputs_info_dataframe["source_type"] == advise_integration)
-                & (adviser_inputs_info_dataframe["date_"] == str(date_))
             ]
 
             counts = 0
@@ -149,7 +147,6 @@ def retrieve_processed_inputs_info_dataframe(
         for recommendation_type in RecommendationTypeEnum._member_names_:  # type: ignore
             subset_df = adviser_inputs_info_dataframe[
                 (adviser_inputs_info_dataframe["recommendation_type"] == recommendation_type)
-                & (adviser_inputs_info_dataframe["date_"] == str(date_))
             ]
 
             counts = 0
@@ -169,10 +166,7 @@ def retrieve_processed_inputs_info_dataframe(
             _LOGGER.info(f"No adviser recommendation_type info found in date: {date_.strftime('%Y-%m-%d')}")
 
         for solver in adviser_inputs_info_dataframe["solver"].unique():
-            subset_df = adviser_inputs_info_dataframe[
-                (adviser_inputs_info_dataframe["solver"] == solver)
-                & (adviser_inputs_info_dataframe["date_"] == str(date_))
-            ]
+            subset_df = adviser_inputs_info_dataframe[(adviser_inputs_info_dataframe["solver"] == solver)]
 
             counts = 0
 
@@ -194,7 +188,6 @@ def retrieve_processed_inputs_info_dataframe(
             subset_df = adviser_inputs_info_dataframe[
                 (adviser_inputs_info_dataframe["base_image"] == base_image)
                 & (adviser_inputs_info_dataframe["cpu_model"] != "None")
-                & (adviser_inputs_info_dataframe["date_"] == str(date_))
             ]
 
             counts = 0
@@ -218,7 +211,6 @@ def retrieve_processed_inputs_info_dataframe(
             subset_df = adviser_inputs_info_dataframe[
                 (adviser_inputs_info_dataframe["cpu_model"] == cpu_model)
                 & (adviser_inputs_info_dataframe["cpu_model"] != "None")
-                & (adviser_inputs_info_dataframe["date_"] == str(date_))
             ]
 
             counts = 0

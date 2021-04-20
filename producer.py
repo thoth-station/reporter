@@ -132,8 +132,8 @@ def main():
 
     if end_date == start_date:
         if start_date == TODAY:
-            start_date = start_date - delta
             _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}) == today ({TODAY}).")
+            start_date = start_date - delta
             _LOGGER.warning(f"new start date is: {start_date}.")
         else:
             _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}).")
@@ -154,6 +154,7 @@ def main():
         adviser_files = Adviser.aggregate_adviser_results(start_date=current_initial_date, end_date=current_end_date)
 
         if not adviser_files:
+            _LOGGER.info("No adviser files identifed!")
             current_initial_date += delta
             continue
 

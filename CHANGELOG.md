@@ -361,3 +361,7 @@ all the things that you see...
 ## Release 0.7.1 (2021-04-20T13:24:31)
 ### Bug Fixes
 * fix loop exit (#183)
+
+## Release 0.7.2 (2021-04-20T15:27:22)
+### Features
+* Remove unusued filter (#186)

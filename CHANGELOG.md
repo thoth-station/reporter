@@ -369,3 +369,7 @@ all the things that you see...
 ## Release 0.7.3 (2021-04-21T13:39:30)
 ### Improvements
 * more debug (#189)
+
+## Release 0.7.4 (2021-04-21T16:14:49)
+### Features
+* update schema and version (#193)

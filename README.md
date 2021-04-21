@@ -10,4 +10,4 @@ Currently Advise reporter analyzes and store two type of reports daily:
 
 2. Adviser quality analysis of reports and justifications (What Thoth provides to users).
 
-![AdviserQualityAnalysis](https://raw.githubusercontent.com/thoth-station/advise-reporter/master/docs/images/AdviserQualityAnalysis.png)
+![AdviserQualityAnalysis](https://raw.githubusercontent.com/thoth-station/advise-reporter/master/docs/images/AdviserQualityAnalysis.jpg)

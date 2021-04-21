@@ -35,7 +35,6 @@ from thoth.advise_reporter.processed_results import retrieve_processed_statistic
 from thoth.advise_reporter.processed_results import retrieve_processed_inputs_info_dataframe
 
 from thoth.advise_reporter import __service_version__
-from thoth.common import init_logging
 
 from thoth.storages import GraphDatabase
 
@@ -58,6 +57,13 @@ if _SEND_MESSAGES:
     p = producer.create_producer()
 
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
+
+_DEBUG_LEVEL = bool(int(os.getenv("DEBUG_LEVEL", 0)))
+
+if _DEBUG_LEVEL:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
 
 LIMIT_RESULTS = bool(int(os.getenv("THOTH_LIMIT_RESULTS", 0)))
 MAX_IDS = int(os.getenv("THOTH_MAX_IDS", 100))
@@ -92,7 +98,8 @@ END_DATE = os.getenv("ADVISE_REPORTER_END_DATE", str(TODAY))
 
 def main():
     """Run advise-reporter to produce message."""
-    init_logging()
+    if not _SEND_MESSAGES:
+        _LOGGER.info("No messages are sent. THOTH_ADVISE_REPORTER_SEND_KAFKA_MESSAGES is set to 0")
 
     total_justifications: List[Dict[str, Any]] = []
     try:
@@ -117,14 +124,14 @@ def main():
     delta = datetime.timedelta(days=1)
 
     if start_date == TODAY + delta:
-        _LOGGER.warning(f"start date ({start_date}) cannot be in the future. Today is: {TODAY}.")
+        _LOGGER.info(f"start date ({start_date}) cannot be in the future. Today is: {TODAY}.")
         start_date = TODAY
-        _LOGGER.warning(f"new start date is: {start_date}.")
+        _LOGGER.info(f"new start date is: {start_date}.")
 
     if end_date > TODAY + delta:
-        _LOGGER.warning(f"end date ({end_date}) cannot be in the future. Today is: {TODAY}.")
+        _LOGGER.info(f"end date ({end_date}) cannot be in the future. Today is: {TODAY}.")
         end_date = TODAY
-        _LOGGER.warning(f"new end date is: {end_date}.")
+        _LOGGER.info(f"new end date is: {end_date}.")
 
     if end_date < start_date:
         _LOGGER.error(f"Cannot analyze adviser data: end date ({end_date}) < start_date ({start_date}).")
@@ -132,13 +139,16 @@ def main():
 
     if end_date == start_date:
         if start_date == TODAY:
-            _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}) == today ({TODAY}).")
+            _LOGGER.info(f"end date ({end_date}) == start_date ({start_date}) == today ({TODAY}).")
             start_date = start_date - delta
-            _LOGGER.warning(f"new start date is: {start_date}.")
+            _LOGGER.info(f"new start date is: {start_date}.")
         else:
-            _LOGGER.warning(f"end date ({end_date}) == start_date ({start_date}).")
+            _LOGGER.info(f"end date ({end_date}) == start_date ({start_date}).")
             end_date = end_date + datetime.timedelta(days=1)
-            _LOGGER.warning(f"new end date (excluded) is: {end_date}.")
+            _LOGGER.info(f"new end date (excluded) is: {end_date}.")
+
+    _LOGGER.info(f"Initial start date: {start_date}")
+    _LOGGER.info(f"Initial end date (excluded): {end_date}")
 
     current_initial_date = start_date
 

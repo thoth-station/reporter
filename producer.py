@@ -25,7 +25,8 @@ import pandas as pd
 
 from typing import Dict, Any, List
 
-from thoth.messaging import AdviseJustificationMessage
+from thoth.messaging import advise_justification_message
+from thoth.messaging.advise_justification import MessageContents as AdviseJustificationContents
 import thoth.messaging.producer as producer
 from thoth.report_processing.components.adviser import Adviser
 from thoth.advise_reporter.advise_reporter import save_results_to_ceph
@@ -197,8 +198,8 @@ def main():
         try:
             producer.publish_to_topic(
                 p,
-                AdviseJustificationMessage(),
-                AdviseJustificationMessage.MessageContents(
+                advise_justification_message,
+                AdviseJustificationContents(
                     message=message,
                     count=int(count),
                     justification_type=justification_type,

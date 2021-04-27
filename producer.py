@@ -26,6 +26,7 @@ import pandas as pd
 from typing import Dict, Any, List
 
 import thoth.messaging.producer as producer
+from thoth.messaging import advise_justification_message
 from thoth.messaging.advise_justification import MessageContents as AdviseJustificationContents
 
 from thoth.report_processing.components.adviser import Adviser
@@ -265,7 +266,7 @@ def main():
         try:
             producer.publish_to_topic(
                 p,
-                AdviseJustificationContents(),
+                advise_justification_message,
                 AdviseJustificationContents.MessageContents(
                     message=message,
                     count=int(count),

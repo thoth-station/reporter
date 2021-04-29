@@ -42,7 +42,7 @@ def explore_adviser_files(
     store_on_public_bucket: bool = False,
 ):
     """Explore adviser files to gather info for contributors."""
-    daily_processed_dataframes: List[pd.DataFrame] = {}
+    daily_processed_dataframes: Dict[str, pd.DataFrame] = {}
 
     adviser_files = Adviser.aggregate_adviser_results(start_date=current_initial_date, end_date=current_end_date)
 
@@ -342,9 +342,9 @@ def evaluate_requests_statistics(
     results_store: Dict[str, Any],
     store_on_ceph: bool = False,
     store_on_public_bucket: bool = False,
-) -> Dict[str, Any]:
+) -> List[Dict[str, Any]]:
     """Evaluate requests statistics (requests - reports created)."""
-    stats = []
+    stats: List[Dict[str, Any]] = []
     for component, result_store in results_store.items():
         stats.append(
             {

@@ -22,15 +22,104 @@ import datetime
 
 from typing import Dict, Any, List
 
+from thoth.report_processing.components.adviser import Adviser
 from thoth.common.enums import ThothAdviserIntegrationEnum
 from thoth.storages.graph.enums import RecommendationTypeEnum
-from thoth.advise_reporter.utils import parse_justification
+from thoth.reporter.utils import parse_justification
+from thoth.reporter.utils import save_results_to_ceph
 
 import pandas as pd
 
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def explore_adviser_files(
+    current_initial_date: datetime.date,
+    current_end_date: datetime.date,
+    total_justifications: List[Dict[str, Any]],
+    store_on_ceph: bool = False
+):
+    """Explore adviser files to gather info for contributors."""
+    daily_processed_dataframes: List[pd.DataFrame] = {}
+
+    adviser_files = Adviser.aggregate_adviser_results(start_date=current_initial_date, end_date=current_end_date)
+
+    if not adviser_files:
+        _LOGGER.info("No adviser files identifed!")
+        return total_justifications
+
+    dataframes = Adviser.create_adviser_dataframes(adviser_files=adviser_files)
+
+    daily_justifications = retrieve_processed_justifications_dataframe(
+        date_=current_initial_date, dataframes=dataframes
+    )
+    daily_processed_dataframes["adviser_justifications"] = pd.DataFrame(daily_justifications)
+
+    if not daily_processed_dataframes["adviser_justifications"].empty and not store_on_ceph:
+        _LOGGER.info(
+            "Adviser justifications:"
+            f'\n{daily_processed_dataframes["adviser_justifications"].to_csv(header=False, sep="`", index=False)}'
+        )
+
+    daily_statistics = retrieve_processed_statistics_dataframe(date_=current_initial_date, dataframes=dataframes)
+    daily_processed_dataframes["adviser_statistics"] = pd.DataFrame(daily_statistics)
+
+    if not daily_processed_dataframes["adviser_statistics"].empty and not store_on_ceph:
+        _LOGGER.info(
+            "Adviser statistics success rate:"
+            f'\n{daily_processed_dataframes["adviser_statistics"].to_csv(header=False, sep="`", index=False)}'
+        )
+
+    daily_inputs_info = retrieve_processed_inputs_info_dataframe(date_=current_initial_date, dataframes=dataframes)
+    daily_processed_dataframes["adviser_integration_info"] = pd.DataFrame(daily_inputs_info["integration_info"])
+    daily_processed_dataframes["adviser_recommendation_info"] = pd.DataFrame(daily_inputs_info["recommendation_info"])
+    daily_processed_dataframes["adviser_solver_info"] = pd.DataFrame(daily_inputs_info["solver_info"])
+    daily_processed_dataframes["adviser_base_image_info"] = pd.DataFrame(daily_inputs_info["base_image_info"])
+    daily_processed_dataframes["adviser_hardware_info"] = pd.DataFrame(daily_inputs_info["hardware_info"])
+
+    if not daily_processed_dataframes["adviser_integration_info"].empty and not store_on_ceph:
+        _LOGGER.info(
+            "Adviser integration info stats:"
+            f'\n{daily_processed_dataframes["adviser_integration_info"].to_csv(header=False, sep="`", index=False)}'
+        )
+
+    if not daily_processed_dataframes["adviser_recommendation_info"].empty and not store_on_ceph:
+        _LOGGER.info(
+            "Adviser recomendation info stats:"
+            f'\n{daily_processed_dataframes["adviser_recommendation_info"].to_csv(header=False, sep="`", index=False)}'
+        )
+
+    if not daily_processed_dataframes["adviser_solver_info"].empty and not store_on_ceph:
+        _LOGGER.info(
+            "Adviser solver info stats:"
+            f'\n{daily_processed_dataframes["adviser_solver_info"].to_csv(header=False, sep="`", index=False)}'
+        )
+
+    if not daily_processed_dataframes["adviser_base_image_info"].empty and not store_on_ceph:
+        _LOGGER.info(
+            "Adviser base image info stats:"
+            f'\n{daily_processed_dataframes["adviser_base_image_info"].to_csv(header=False, sep="`", index=False)}'
+        )
+
+    if not daily_processed_dataframes["adviser_hardware_info"].empty and not store_on_ceph:
+        _LOGGER.info(
+            "Adviser hardware info stats:"
+            f'\n{daily_processed_dataframes["adviser_hardware_info"].to_csv(header=False, sep="`", index=False)}'
+        )
+
+    if store_on_ceph:
+        for result_class, processed_df in daily_processed_dataframes.items():
+            save_results_to_ceph(
+                processed_df=processed_df,
+                result_class=result_class,
+                date_filter=current_initial_date,
+                store_to_public_ceph=_STORE_ON_PUBLIC_CEPH,
+            )
+
+    total_justifications += daily_justifications
+
+    return total_justifications
 
 def retrieve_processed_justifications_dataframe(
     date_: datetime.date,
@@ -237,9 +326,44 @@ def retrieve_processed_inputs_info_dataframe(
         _LOGGER.warning(f"No adviser inputs info identified on {date_.strftime('%d-%m-%Y')}")
 
     return {
+        
         "integration_info": integration_info,
         "recommendation_info": recommendation_type_info,
         "solver_info": solver_info,
         "base_image_info": base_image_info,
         "hardware_info": hardware_info,
     }
+
+def evaluate_requests_statistics(
+    current_initial_date: datetime.date,
+    current_end_date: datetime.date,
+    results_store: Dict[str, Any],
+    store_on_ceph: bool = False
+) -> Dict[str, Any]:
+    """Evaluate requests statistics (requests - reports created)."""
+    stats = []
+    for component, result_store in results_store.items():
+        stats.append({
+            "date": current_initial_date,
+            "component": component,
+            "requests": result_store.get_document_count(start_date=current_initial_date, end_date=current_end_date, only_requests=True),
+            "documents": result_store.get_document_count(start_date=current_initial_date, end_date=current_end_date)
+        })
+
+    processed_df = pd.DataFrame(stats)
+
+    if not processed_df.empty and not store_on_ceph:
+        _LOGGER.info(
+            "components requests stats:"
+            f'\n{processed_df.to_csv(header=False, sep="`", index=False)}'
+        )
+
+    if store_on_ceph:
+        save_results_to_ceph(
+            processed_df=processed_df,
+            result_class="requests_analysis",
+            date_filter=current_initial_date,
+            store_to_public_ceph=_STORE_ON_PUBLIC_CEPH,
+        )
+
+    return stats

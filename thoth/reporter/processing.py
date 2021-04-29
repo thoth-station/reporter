@@ -38,7 +38,8 @@ def explore_adviser_files(
     current_initial_date: datetime.date,
     current_end_date: datetime.date,
     total_justifications: List[Dict[str, Any]],
-    store_on_ceph: bool = False
+    store_on_ceph: bool = False,
+    store_on_public_bucket: bool = False,
 ):
     """Explore adviser files to gather info for contributors."""
     daily_processed_dataframes: List[pd.DataFrame] = {}
@@ -114,12 +115,13 @@ def explore_adviser_files(
                 processed_df=processed_df,
                 result_class=result_class,
                 date_filter=current_initial_date,
-                store_to_public_ceph=_STORE_ON_PUBLIC_CEPH,
+                store_to_public_ceph=store_on_public_bucket,
             )
 
     total_justifications += daily_justifications
 
     return total_justifications
+
 
 def retrieve_processed_justifications_dataframe(
     date_: datetime.date,
@@ -326,7 +328,6 @@ def retrieve_processed_inputs_info_dataframe(
         _LOGGER.warning(f"No adviser inputs info identified on {date_.strftime('%d-%m-%Y')}")
 
     return {
-        
         "integration_info": integration_info,
         "recommendation_info": recommendation_type_info,
         "solver_info": solver_info,
@@ -334,36 +335,41 @@ def retrieve_processed_inputs_info_dataframe(
         "hardware_info": hardware_info,
     }
 
+
 def evaluate_requests_statistics(
     current_initial_date: datetime.date,
     current_end_date: datetime.date,
     results_store: Dict[str, Any],
-    store_on_ceph: bool = False
+    store_on_ceph: bool = False,
+    store_on_public_bucket: bool = False,
 ) -> Dict[str, Any]:
     """Evaluate requests statistics (requests - reports created)."""
     stats = []
     for component, result_store in results_store.items():
-        stats.append({
-            "date": current_initial_date,
-            "component": component,
-            "requests": result_store.get_document_count(start_date=current_initial_date, end_date=current_end_date, only_requests=True),
-            "documents": result_store.get_document_count(start_date=current_initial_date, end_date=current_end_date)
-        })
+        stats.append(
+            {
+                "date": current_initial_date,
+                "component": component,
+                "requests": result_store.get_document_count(
+                    start_date=current_initial_date, end_date=current_end_date, only_requests=True
+                ),
+                "documents": result_store.get_document_count(
+                    start_date=current_initial_date, end_date=current_end_date
+                ),
+            }
+        )
 
     processed_df = pd.DataFrame(stats)
 
     if not processed_df.empty and not store_on_ceph:
-        _LOGGER.info(
-            "components requests stats:"
-            f'\n{processed_df.to_csv(header=False, sep="`", index=False)}'
-        )
+        _LOGGER.info("components requests stats:" f'\n{processed_df.to_csv(header=False, sep="`", index=False)}')
 
     if store_on_ceph:
         save_results_to_ceph(
             processed_df=processed_df,
             result_class="requests_analysis",
             date_filter=current_initial_date,
-            store_to_public_ceph=_STORE_ON_PUBLIC_CEPH,
+            store_to_public_ceph=store_on_public_bucket,
         )
 
     return stats

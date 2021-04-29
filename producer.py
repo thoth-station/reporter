@@ -48,7 +48,7 @@ _THOTH_DEPLOYMENT_NAME = os.getenv("THOTH_DEPLOYMENT_NAME")
 
 _SEND_MESSAGES = bool(int(os.getenv("THOTH_REPORTER_SEND_KAFKA_MESSAGES", 0)))
 STORE_ON_CEPH = bool(int(os.getenv("THOTH_REPORTER_STORE_ON_CEPH", 1)))
-_STORE_ON_PUBLIC_CEPH = bool(int(os.getenv("THOTH_REPORTER_STORE_ON_PUBLIC_CEPH", 0)))
+STORE_ON_PUBLIC_CEPH = bool(int(os.getenv("THOTH_REPORTER_STORE_ON_PUBLIC_CEPH", 0)))
 
 _SEND_METRICS = bool(int(os.getenv("THOTH_REPORTER_SEND_METRICS", 1)))
 
@@ -117,7 +117,7 @@ PROVENANCE_STORE.connect()
 RESULTS_STORES = {
     "adviser": ADVISER_STORE,
     "package-extract": PACKAGE_EXTRACT_STORE,
-    "provenance-checker": PROVENANCE_STORE
+    "provenance-checker": PROVENANCE_STORE,
 }
 
 TODAY = datetime.date.today()
@@ -194,7 +194,8 @@ def main():
             current_initial_date=current_initial_date,
             current_end_date=current_end_date,
             results_store=RESULTS_STORES,
-            store_on_ceph=STORE_ON_CEPH
+            store_on_ceph=STORE_ON_CEPH,
+            store_on_public_bucket=STORE_ON_PUBLIC_CEPH,
         )
 
         # Assign metrics for pushgateway
@@ -208,7 +209,8 @@ def main():
             current_initial_date=current_initial_date,
             current_end_date=current_end_date,
             total_justifications=total_justifications,
-            store_on_ceph=STORE_ON_CEPH
+            store_on_ceph=STORE_ON_CEPH,
+            store_on_public_bucket=STORE_ON_PUBLIC_CEPH,
         )
 
         current_initial_date += delta

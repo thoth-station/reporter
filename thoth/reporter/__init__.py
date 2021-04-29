@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# thoth-advise-reporter
+# thoth-reporter
 # Copyright(C) 2020 Francesco Murdaca
 #
 # This program is free software: you can redistribute it and / or modify
@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-"""This is advise reporter for Thoth adviser justifications."""
+"""This is reporter for Thoth components reports analysis."""
 
 from thoth.common import __version__ as __common__version__
 from thoth.messaging import __version__ as __messaging__version__

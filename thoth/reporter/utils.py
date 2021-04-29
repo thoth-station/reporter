@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# thoth-advise-reporter
-# Copyright(C) 2020 Francesco Murdaca
+# thoth-reporter
+# Copyright(C) 2020, 2021 Francesco Murdaca
 #
 # This program is free software: you can redistribute it and / or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Utils for advise reporter."""
+"""Utils for Thoth reporter."""
 
 import logging
 import os

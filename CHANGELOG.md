@@ -373,3 +373,10 @@ all the things that you see...
 ## Release 0.7.4 (2021-04-21T16:14:49)
 ### Features
 * update schema and version (#193)
+
+## Release 0.8.0 (2021-04-29T12:40:38)
+### Features
+* Produce requests vs reports analysis (#200)
+* :arrow_up: Automatic update of dependencies by Kebechet (#199)
+### Bug Fixes
+* fix accidental use of contents instead of baseMessage instance (#198)

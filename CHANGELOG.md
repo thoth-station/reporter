@@ -380,3 +380,7 @@ all the things that you see...
 * :arrow_up: Automatic update of dependencies by Kebechet (#199)
 ### Bug Fixes
 * fix accidental use of contents instead of baseMessage instance (#198)
+
+## Release 0.9.0 (2021-05-06T15:13:19)
+### Features
+* flush all pending messages (#203)

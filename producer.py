@@ -260,6 +260,8 @@ def main():
         except Exception as identifier:
             _LOGGER.exception("Failed to publish with the following error message: %r", identifier)
 
+    p.flush()
+
 
 if __name__ == "__main__":
     main()

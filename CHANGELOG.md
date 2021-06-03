@@ -384,3 +384,8 @@ all the things that you see...
 ## Release 0.9.0 (2021-05-06T15:13:19)
 ### Features
 * flush all pending messages (#203)
+
+## Release 0.9.1 (2021-06-03T17:41:31)
+### Features
+* :arrow_up: Automatic update of dependencies by Kebechet
+* :hatched_chick: update the prow resource limits (#207)

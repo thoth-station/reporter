@@ -222,9 +222,13 @@ def main():
         # Assign metrics for pushgateway
         for stats_analysis in stats:
 
-            thoth_reporter_requests_gauge.labels(stats_analysis["component"], _THOTH_DEPLOYMENT_NAME).set(stats_analysis["requests"])
+            thoth_reporter_requests_gauge.labels(stats_analysis["component"], _THOTH_DEPLOYMENT_NAME).set(
+                stats_analysis["requests"]
+            )
 
-            thoth_reporter_reports_gauge.labels(stats_analysis["component"], _THOTH_DEPLOYMENT_NAME).set(stats_analysis["documents"])
+            thoth_reporter_reports_gauge.labels(stats_analysis["component"], _THOTH_DEPLOYMENT_NAME).set(
+                stats_analysis["documents"]
+            )
 
         daily_processed_dataframes = explore_adviser_files(
             current_initial_date=current_initial_date,
@@ -242,8 +246,8 @@ def main():
         for message in daily_justifications_df["message"].unique():
             for adviser_version in daily_justifications_df["adviser_version"].unique():
                 subset_df = daily_justifications_df[
-                    (daily_justifications_df["message"] == message) &
-                    (daily_justifications_df["adviser_version"] == adviser_version)
+                    (daily_justifications_df["message"] == message)
+                    & (daily_justifications_df["adviser_version"] == adviser_version)
                 ]
 
                 if subset_df.shape[0] < 1:
@@ -303,12 +307,8 @@ def main():
             f_counts = 0
 
             if not subset_df.empty:
-                s_counts = subset_df[subset_df["adviser_version"] == adviser_version][
-                    "success"
-                ].values[0]
-                f_counts = subset_df[subset_df["adviser_version"] == adviser_version][
-                    "failure"
-                ].values[0]
+                s_counts = subset_df[subset_df["adviser_version"] == adviser_version]["success"].values[0]
+                f_counts = subset_df[subset_df["adviser_version"] == adviser_version]["failure"].values[0]
 
             if adviser_version not in total_statistics:
                 total_statistics[adviser_version] = {}
@@ -341,29 +341,18 @@ def main():
         for js in justification_to_send:
 
             thoth_reporter_failed_adviser_justifications_gauge.labels(
-                adviser_version=js["adviser_version"],
-                justification=js["justification"],
-                env=_THOTH_DEPLOYMENT_NAME
-            ).set(
-                js["percentage"]
-            )
+                adviser_version=js["adviser_version"], justification=js["justification"], env=_THOTH_DEPLOYMENT_NAME
+            ).set(js["percentage"])
 
         for a_stats in statistics_to_send:
 
             thoth_reporter_failed_adviser_gauge.labels(
-                adviser_version=js["adviser_version"],
-                env=_THOTH_DEPLOYMENT_NAME
-            ).set(
-                a_stats["failure_p"]
-            )
-
+                adviser_version=js["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
+            ).set(a_stats["failure_p"])
 
             thoth_reporter_success_adviser_gauge.labels(
-                adviser_version=js["adviser_version"],
-                env=_THOTH_DEPLOYMENT_NAME
-            ).set(
-                a_stats["success_p"]
-            )
+                adviser_version=js["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
+            ).set(a_stats["success_p"])
 
         try:
             _LOGGER.debug(

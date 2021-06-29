@@ -394,3 +394,10 @@ all the things that you see...
 ### Features
 * :arrow_up: Automatic update of dependencies by Kebechet
 * :arrow_up: Automatic update of dependencies by Kebechet
+
+## Release 0.10.0 (2021-06-29T17:47:42)
+### Features
+* Send metrics to pushgateway
+* :arrow_up: Automatic update of dependencies by Kebechet
+### Improvements
+* make pre-commit happy

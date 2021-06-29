@@ -120,7 +120,7 @@ def explore_adviser_files(
 
     total_justifications += daily_justifications
 
-    return total_justifications
+    return daily_processed_dataframes
 
 
 def retrieve_processed_justifications_dataframe(

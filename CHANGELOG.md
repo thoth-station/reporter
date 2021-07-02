@@ -401,3 +401,8 @@ all the things that you see...
 * :arrow_up: Automatic update of dependencies by Kebechet
 ### Improvements
 * make pre-commit happy
+
+## Release 0.10.1 (2021-07-02T09:30:37)
+### Features
+* :arrow_up: Automatic update of dependencies by Kebechet
+* Add checks on data

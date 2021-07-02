@@ -1031,11 +1031,11 @@
         },
         "thoth-report-processing": {
             "hashes": [
-                "sha256:68486567a62eb2f60b82ac0b819dabb7013bba62911fdfe34fc4d76fb1f96206",
-                "sha256:9c0419d75299bd316869d5386023bcf0e5be19c57ccd1d63d46e6abfce36f65e"
+                "sha256:02a94c06e8159101fe806ed9397cf209768ec6eabb1774cb3488a26d2419536f",
+                "sha256:cc735d69ebde9393b855bc06b46aa0a25736d8e13904b85f3dd3093828391181"
             ],
             "index": "pypi",
-            "version": "==0.7.0"
+            "version": "==0.7.1"
         },
         "thoth-ssdeep": {
             "hashes": [

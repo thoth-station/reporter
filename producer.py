@@ -238,121 +238,134 @@ def main():
             store_on_public_bucket=STORE_ON_PUBLIC_CEPH,
         )
 
-        # Advise justifications
         justification_to_send = []
+        statistics_to_send = []
+
+        if not daily_processed_dataframes:
+            current_initial_date += delta
+            continue
+
+        # Advise justifications
         total_js: Dict[str, Any] = {}
         daily_justifications_df = daily_processed_dataframes["adviser_justifications"]
 
-        for message in daily_justifications_df["message"].unique():
-            for adviser_version in daily_justifications_df["adviser_version"].unique():
-                subset_df = daily_justifications_df[
-                    (daily_justifications_df["message"] == message)
-                    & (daily_justifications_df["adviser_version"] == adviser_version)
-                ]
+        if not daily_justifications_df.empty:
+            for message in daily_justifications_df["message"].unique():
+                for adviser_version in daily_justifications_df["adviser_version"].unique():
+                    subset_df = daily_justifications_df[
+                        (daily_justifications_df["message"] == message)
+                        & (daily_justifications_df["adviser_version"] == adviser_version)
+                    ]
 
-                if subset_df.shape[0] < 1:
-                    continue
+                    if subset_df.shape[0] < 1:
+                        continue
 
-                counts = subset_df["count"].values[0]
+                    counts = subset_df["count"].values[0]
 
-                message_type = subset_df["type"].values[0]
+                    message_type = subset_df["type"].values[0]
 
-                if message_type != "ERROR":
-                    continue
+                    if message_type != "ERROR":
+                        continue
 
-                if adviser_version not in total_js:
-                    total_js[adviser_version] = {}
+                    if adviser_version not in total_js:
+                        total_js[adviser_version] = {}
 
-                    total_js[adviser_version][message] = counts
-                else:
-                    if message not in total_js[adviser_version]:
                         total_js[adviser_version][message] = counts
                     else:
-                        total_js[adviser_version][message] += counts
+                        if message not in total_js[adviser_version]:
+                            total_js[adviser_version][message] = counts
+                        else:
+                            total_js[adviser_version][message] += counts
 
-        for adviser_version, justifications_info in total_js.items():
+            for adviser_version, justifications_info in total_js.items():
 
-            total_errors = 0
-            for _, errors_counts in justifications_info.items():
-                total_errors += errors_counts
+                total_errors = 0
+                for _, errors_counts in justifications_info.items():
+                    total_errors += errors_counts
 
-            for justification, counts in justifications_info.items():
+                for justification, counts in justifications_info.items():
 
-                if not counts:
-                    total = "0"
-                    percentage = 0
-                else:
-                    total = "+" + "{}".format(int(counts))
-                    percentage = counts / total_errors
+                    if not counts:
+                        total = "0"
+                        percentage = 0
+                    else:
+                        total = "+" + "{}".format(int(counts))
+                        percentage = counts / total_errors
 
-                justification_to_send.append(
-                    {
-                        "adviser_version": adviser_version,
-                        "justification": justification,
-                        "total": total,
-                        "percentage": abs(round(percentage * 100, 3)),
-                    },
-                )
+                    justification_to_send.append(
+                        {
+                            "adviser_version": adviser_version,
+                            "justification": justification,
+                            "total": total,
+                            "percentage": abs(round(percentage * 100, 3)),
+                        },
+                    )
+        else:
+            _LOGGER.warning("No adviser justification identified.")
 
         # Advise statistics
-        statistics_to_send = []
         total_statistics: Dict[str, Any] = {}
 
         adviser_statistics = daily_processed_dataframes["adviser_statistics"]
 
-        for adviser_version in adviser_statistics["adviser_version"].unique():
-            subset_df = adviser_statistics[adviser_statistics["adviser_version"] == adviser_version]
+        if not adviser_statistics.empty:
+            for adviser_version in adviser_statistics["adviser_version"].unique():
+                subset_df = adviser_statistics[adviser_statistics["adviser_version"] == adviser_version]
 
-            s_counts = 0
-            f_counts = 0
+                s_counts = 0
+                f_counts = 0
 
-            if not subset_df.empty:
-                s_counts = subset_df[subset_df["adviser_version"] == adviser_version]["success"].values[0]
-                f_counts = subset_df[subset_df["adviser_version"] == adviser_version]["failure"].values[0]
+                if not subset_df.empty:
+                    s_counts = subset_df[subset_df["adviser_version"] == adviser_version]["success"].values[0]
+                    f_counts = subset_df[subset_df["adviser_version"] == adviser_version]["failure"].values[0]
 
-            if adviser_version not in total_statistics:
-                total_statistics[adviser_version] = {}
+                if adviser_version not in total_statistics:
+                    total_statistics[adviser_version] = {}
 
-                total_statistics[adviser_version]["success"] = s_counts
-                total_statistics[adviser_version]["failure"] = f_counts
-            else:
-                total_statistics[adviser_version]["success"] += s_counts
-                total_statistics[adviser_version]["failure"] += f_counts
+                    total_statistics[adviser_version]["success"] = s_counts
+                    total_statistics[adviser_version]["failure"] = f_counts
+                else:
+                    total_statistics[adviser_version]["success"] += s_counts
+                    total_statistics[adviser_version]["failure"] += f_counts
 
-        for adviser_version, statistics_info in total_statistics.items():
+            for adviser_version, statistics_info in total_statistics.items():
 
-            total = statistics_info["success"] + statistics_info["failure"]
+                total = statistics_info["success"] + statistics_info["failure"]
 
-            success_p = statistics_info["success"] / total
-            failure_p = statistics_info["failure"] / total
+                success_p = statistics_info["success"] / total
+                failure_p = statistics_info["failure"] / total
 
-            statistics_to_send.append(
-                {
-                    "adviser_version": adviser_version,
-                    "success_p": abs(round(success_p * 100, 3)),
-                    "failure_p": abs(round(failure_p * 100, 3)),
-                },
-            )
+                statistics_to_send.append(
+                    {
+                        "adviser_version": adviser_version,
+                        "success_p": abs(round(success_p * 100, 3)),
+                        "failure_p": abs(round(failure_p * 100, 3)),
+                    },
+                )
+        else:
+            _LOGGER.warning("No adviser statistics identified.")
 
         current_initial_date += delta
 
     if _SEND_METRICS:
 
-        for js in justification_to_send:
+        if justification_to_send:
+            for js in justification_to_send:
 
-            thoth_reporter_failed_adviser_justifications_gauge.labels(
-                adviser_version=js["adviser_version"], justification=js["justification"], env=_THOTH_DEPLOYMENT_NAME
-            ).set(js["percentage"])
+                thoth_reporter_failed_adviser_justifications_gauge.labels(
+                    adviser_version=js["adviser_version"], justification=js["justification"], env=_THOTH_DEPLOYMENT_NAME
+                ).set(js["percentage"])
 
-        for a_stats in statistics_to_send:
+        if statistics_to_send:
+            for a_stats in statistics_to_send:
 
-            thoth_reporter_failed_adviser_gauge.labels(
-                adviser_version=js["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
-            ).set(a_stats["failure_p"])
+                thoth_reporter_failed_adviser_gauge.labels(
+                    adviser_version=js["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
+                ).set(a_stats["failure_p"])
 
-            thoth_reporter_success_adviser_gauge.labels(
-                adviser_version=js["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
-            ).set(a_stats["success_p"])
+                thoth_reporter_success_adviser_gauge.labels(
+                    adviser_version=js["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
+                ).set(a_stats["success_p"])
 
         try:
             _LOGGER.debug(

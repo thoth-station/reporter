@@ -406,3 +406,7 @@ all the things that you see...
 ### Features
 * :arrow_up: Automatic update of dependencies by Kebechet
 * Add checks on data
+
+## Release 0.10.2 (2021-07-02T14:41:06)
+### Features
+* Fix adviser version label

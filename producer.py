@@ -360,11 +360,11 @@ def main():
             for a_stats in statistics_to_send:
 
                 thoth_reporter_failed_adviser_gauge.labels(
-                    adviser_version=js["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
+                    adviser_version=a_stats["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
                 ).set(a_stats["failure_p"])
 
                 thoth_reporter_success_adviser_gauge.labels(
-                    adviser_version=js["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
+                    adviser_version=a_stats["adviser_version"], env=_THOTH_DEPLOYMENT_NAME
                 ).set(a_stats["success_p"])
 
         try:

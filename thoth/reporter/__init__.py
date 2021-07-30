@@ -23,7 +23,7 @@ from thoth.messaging import __version__ as __messaging__version__
 from thoth.report_processing import __version__ as __report_processing__version__
 from thoth.python import __version__ as __python__version__
 
-__version__ = "0.10.2"
+__version__ = "0.10.3"
 __service_version__ = (
     f"{__version__}+"
     f"messaging.{__messaging__version__}."

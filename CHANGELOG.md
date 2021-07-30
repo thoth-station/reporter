@@ -410,3 +410,12 @@ all the things that you see...
 ## Release 0.10.2 (2021-07-02T14:41:06)
 ### Features
 * Fix adviser version label
+
+## Release 0.10.3 (2021-07-30T10:34:19)
+### Features
+* :arrow_up: Automatic update of dependencies by Kebechet (#238)
+* :arrow_up: Automatic update of dependencies by Kebechet
+* Update .aicoe-ci.yaml
+* Update .prow.yaml
+* :arrow_up: Automatic update of dependencies by Kebechet
+* :arrow_up: Automatic update of dependencies by Kebechet

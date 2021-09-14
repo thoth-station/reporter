@@ -1,5 +1,9 @@
 # Changelog for Thoth's Template GitHub Project
 
+## Release 0.10.4 (2021-09-14T20:46:50)
+### Features
+* Update of the dependencies
+
 ## [0.1.0] - 2019-Sep-11 - goern
 
 ### Added

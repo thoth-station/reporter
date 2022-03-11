@@ -1,5 +1,9 @@
 # Changelog for Thoth's Template GitHub Project
 
+## Release 0.11.1 (2022-03-11T17:15:37)
+* :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+
 ## Release 0.11.0 (2022-02-11T09:00:15)
 * Use entire environment path to store
 * :medal_sports: set badges for easy access to content

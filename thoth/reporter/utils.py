@@ -38,7 +38,7 @@ PUBLIC_CEPH_BUCKET = os.environ["THOTH_PUBLIC_CEPH_BUCKET"]
 def save_results_to_ceph(
     processed_df: pd.DataFrame,
     result_class: str,
-    date_filter: Union[date, str] = None,
+    date_filter: Union[date, str] = "",
     store_to_public_ceph: bool = False,
 ):
     """Save results on Ceph."""
@@ -58,7 +58,7 @@ def save_results_to_ceph(
 def _store_to_ceph(
     processed_df: pd.DataFrame,
     result_class: str,
-    date_filter: Union[date, str] = None,
+    date_filter: Union[date, str] = "",
     store_to_public_ceph: bool = False,
 ) -> None:
     """Store results to Ceph for visualization."""

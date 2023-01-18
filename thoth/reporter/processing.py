@@ -25,8 +25,8 @@ from typing import Dict, Any, List
 from thoth.report_processing.components.adviser import Adviser
 from thoth.common.enums import ThothAdviserIntegrationEnum
 from thoth.storages.graph.enums import RecommendationTypeEnum
-from thoth.reporter.utils import parse_justification
-from thoth.reporter.utils import save_results_to_ceph
+from .utils import parse_justification
+from .utils import save_results_to_ceph
 
 import pandas as pd
 
